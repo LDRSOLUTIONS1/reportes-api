@@ -20,6 +20,10 @@ return new class extends Migration
             $table->enum('tipo_cliente', ['conquista', 'retencion', 'desarrollo'])->nullable();
             $table->integer('edad_promedio_flota')->nullable();
             $table->string('logo_path')->nullable();
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

@@ -5,17 +5,22 @@ namespace App\Models;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
+        'role_id',
+        'collaborator_number',
+        'external_rh_id',
         'name',
         'email',
+        'brand',
+        'location_name',
         'password',
         'estado',
-        'created_by'
     ];
 
     protected $hidden = [
@@ -23,25 +28,8 @@ class User extends Authenticatable
         'remember_token'
     ];
 
-    protected $casts = [
-        'password' => 'hashed',
-    ];
-
-    public function creator()
+    public function role()
     {
-        return $this->belongsTo(User::class, 'created_by');
-    }
-
-    public function roles()
-    {
-        return $this->belongsToMany(
-            Role::class,
-            'user_roles'
-        );
-    }
-
-    public function logs()
-    {
-        return $this->hasMany(ActivityLog::class);
+        return $this->belongsTo(Role::class);
     }
 }

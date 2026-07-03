@@ -17,6 +17,10 @@ return new class extends Migration
             $table->integer('cantidad')->nullable();
             $table->decimal('porcentaje_flota', 5, 2)->nullable();
             $table->string('comentarios_aplicacion')->nullable();
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

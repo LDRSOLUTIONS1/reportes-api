@@ -17,6 +17,10 @@ return new class extends Migration
             $table->json('temas_revisados')->nullable();
             $table->json('participantes')->nullable();
             $table->text('comentarios_adicionales')->nullable();
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

@@ -15,6 +15,10 @@ return new class extends Migration
             $table->string('modelo_interes')->nullable();
             $table->integer('porcentaje_avance')->default(0);
             $table->text('comentarios')->nullable();
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

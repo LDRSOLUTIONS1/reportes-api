@@ -26,8 +26,11 @@ return new class extends Migration
             $table->date('fecha_inicio');
             $table->date('fecha_fin')->nullable();
             $table->enum('status', ['borrador', 'enviado', 'revisado'])->default('borrador');
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 

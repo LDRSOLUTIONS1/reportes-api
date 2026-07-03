@@ -13,6 +13,11 @@ return new class extends Migration
             $table->foreignId('client_visit_id')->constrained()->cascadeOnDelete();
             $table->string('nombre_evento');
             $table->enum('tipo', ['asistio', 'candidato']);
+
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

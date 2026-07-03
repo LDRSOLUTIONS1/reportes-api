@@ -8,18 +8,22 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('visit_attachments', function (Blueprint $table) {
+        Schema::create('followup_agreements', function (Blueprint $table) {
             $table->id();
             $table->foreignId('visit_report_id')->constrained()->cascadeOnDelete();
-            $table->string('filename');
-            $table->string('path');
-            $table->enum('tipo', ['foto', 'anexo'])->default('foto');
+            $table->text('acuerdo');
+            $table->string('responsable')->nullable();
+            $table->date('fecha_compromiso')->nullable();
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('visit_attachments');
+        Schema::dropIfExists('followup_agreements');
     }
 };

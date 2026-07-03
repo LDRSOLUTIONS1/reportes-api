@@ -13,6 +13,10 @@ return new class extends Migration
             $table->foreignId('client_visit_id')->constrained()->cascadeOnDelete();
             $table->year('anio');
             $table->integer('cantidad')->default(0);
+
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }

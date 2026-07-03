@@ -18,6 +18,10 @@ return new class extends Migration
             $table->decimal('retail_ytd', 10, 2)->nullable();
             $table->integer('inventario')->nullable();
             $table->integer('back_order')->nullable();
+            
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
         });
     }
