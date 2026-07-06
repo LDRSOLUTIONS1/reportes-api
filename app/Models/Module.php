@@ -2,24 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Model;
 
 class Module extends Model
 {
     use HasFactory;
 
     protected $fillable = [
-        'name',
-        'slug',
-        'description',
-        'icon',
-        'route',
-        'order',
-        'show_menu',
         'parent_id',
+        'name',
+        'title',
+        'segment',
+        'icon',
+        'order',
         'estado',
-        'created_by'
+    ];
+
+    protected $casts = [
+        'estado' => 'integer',
+        'order'  => 'integer',
     ];
 
     public function parent()
@@ -29,21 +31,23 @@ class Module extends Model
 
     public function children()
     {
-        return $this->hasMany(Module::class, 'parent_id');
+        return $this->hasMany(Module::class, 'parent_id')
+            ->where('estado', 1)
+            ->orderBy('order');
     }
 
     public function permissions()
     {
-        return $this->hasMany(Permission::class);
+        return $this->hasMany(RoleModulePermission::class);
     }
 
-    public function creator()
+    public function scopeActivos($query)
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $query->where('estado', 1);
     }
 
-    public function logs()
+    public function scopeRaiz($query)
     {
-        return $this->hasMany(ActivityLog::class);
+        return $query->whereNull('parent_id');
     }
 }

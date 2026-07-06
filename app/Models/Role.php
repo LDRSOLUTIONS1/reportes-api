@@ -13,8 +13,8 @@ class Role extends Model
         'name',
         'description',
         'estado',
-        'created_by'
     ];
+
 
     public function users()
     {
@@ -24,16 +24,8 @@ class Role extends Model
         );
     }
 
-    public function permissions()
+    public function modulePermissions()
     {
-        return $this->belongsToMany(
-            Permission::class,
-            'role_permissions'
-        );
-    }
-
-    public function creator()
-    {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->hasMany(RoleModulePermission::class);
     }
 }
