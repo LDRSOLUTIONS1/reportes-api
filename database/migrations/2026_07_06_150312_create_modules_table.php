@@ -20,8 +20,10 @@ return new class extends Migration
             $table->string('segment', 255);      // ruta/segmento del front, ej: "Brands"
             $table->string('icon', 100)->nullable(); // clave que resuelve iconMap.js, ej: "sell"
             $table->unsignedInteger('order')->default(0);
-            $table->tinyInteger('estado')->default(1); // 1 activo, 0 inactivo
 
+            $table->tinyInteger('estado')
+                ->default(2)
+                ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
             $table->timestamps();
 
             $table->unique('name');

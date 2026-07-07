@@ -16,8 +16,8 @@ class RolesController extends Controller
             'estado',
             'created_at',
         )
-            ->where('estado', '!=', 0)
-            ->orderBy('id', 'desc')
+            ->activos()
+            ->orderBy('order')
             ->get();
 
         return response()->json($roles, 200);
@@ -44,7 +44,7 @@ class RolesController extends Controller
             'created_at',
         )
             ->where('id', $id)
-            ->where('estado', '!=', 0)
+            ->activos()
             ->firstOrFail();
 
         return response()->json($role, 200);

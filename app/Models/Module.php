@@ -19,11 +19,6 @@ class Module extends Model
         'estado',
     ];
 
-    protected $casts = [
-        'estado' => 'integer',
-        'order'  => 'integer',
-    ];
-
     public function parent()
     {
         return $this->belongsTo(Module::class, 'parent_id');
@@ -43,11 +38,6 @@ class Module extends Model
 
     public function scopeActivos($query)
     {
-        return $query->where('estado', 1);
-    }
-
-    public function scopeRaiz($query)
-    {
-        return $query->whereNull('parent_id');
+        return $query->whereIn('estado', [1, 2]);
     }
 }

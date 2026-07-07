@@ -28,4 +28,9 @@ class Role extends Model
     {
         return $this->hasMany(RoleModulePermission::class);
     }
+
+    public function scopeActivos($query)
+    {
+        return $query->whereIn('estado', [1, 2]);
+    }
 }
