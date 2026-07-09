@@ -1,16 +1,16 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
-use App\Models\User;
+use App\Models\Role;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 
-class UsersController extends Controller
+class RolesController extends Controller
 {
     public function index()
     {
-        $usuarios = User::select(
+        $roles = Role::select(
             'id',
             'name',
             'estado',
@@ -20,24 +20,25 @@ class UsersController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        return response()->json($usuarios, 200);
+        return response()->json($roles, 200);
     }
 
     public function store(Request $request)
     {
-        $validated = $this->validateUsers($request);
+        $validated = $this->validateRoles($request);
 
-        $usuario = User::create($validated);
+        $role = Role::create($validated);
 
         return response()->json([
-            'message' => 'Usuario creado correctamente',
-            'data'    => $usuario
+            'message' => 'Rol creado correctamente',
+            'data'    => $role
         ], 201);
     }
 
+
     public function show($id)
     {
-        $usuario = User::select(
+        $role = Role::select(
             'id',
             'name',
             'estado',
@@ -47,29 +48,29 @@ class UsersController extends Controller
             ->activos()
             ->firstOrFail();
 
-        return response()->json($usuario, 200);
+        return response()->json($role, 200);
     }
 
     public function update(Request $request, $id)
     {
-        $usuario = User::activos()
+        $role = Role::activos()
             ->findOrFail($id);
 
-        $validated = $this->validateUsers($request, $id);
+        $validated = $this->validateRoles($request, $id);
 
-        $usuario->update($validated);
+        $role->update($validated);
 
         return response()->json([
-            'message' => 'Usuario actualizado correctamente',
-            'data'    => $usuario
+            'message' => 'Rol actualizado correctamente',
+            'data'    => $role
         ], 200);
     }
 
-    public function validateUsers(Request $request, $id = null)
+    public function validateRoles(Request $request, $id = null)
     {
         return $request->validate(
             [
-                'name' => 'required|string|max:255|unique:users,name,' . $id,
+                'name' => 'required|string|max:255|unique:roles,name,' . $id,
                 'estado' => 'nullable|in:0,1,2',
             ],
             [

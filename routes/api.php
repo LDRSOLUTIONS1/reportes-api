@@ -1,14 +1,14 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\RolesController;
-use App\Http\Controllers\Api\UsersController;
-use App\Http\Controllers\Api\ModuleController;
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\RolesController;
+use App\Http\Controllers\UsersController;
+use App\Http\Controllers\ModuleController;
 
-use App\Http\Controllers\Api\ClientVisitController;
-use App\Http\Controllers\Api\VisitReportController;
-use App\Http\Controllers\Api\DistributorVisitController;
+use App\Http\Controllers\ClientVisitController;
+use App\Http\Controllers\VisitReportController;
+use App\Http\Controllers\DistributorVisitController;
 
 Route::post('/login', [AuthController::class, 'loginn']);
 Route::post('/login/{collaborator_number}', [AuthController::class, 'login']);
