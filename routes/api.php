@@ -13,7 +13,6 @@ use App\Http\Controllers\Api\DistributorVisitController;
 Route::post('/login', [AuthController::class, 'loginn']);
 Route::post('/login/{collaborator_number}', [AuthController::class, 'login']);
 
-
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
     Route::resource('/roles', RolesController::class);

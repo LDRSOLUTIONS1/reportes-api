@@ -17,7 +17,7 @@ class RolesController extends Controller
             'created_at',
         )
             ->activos()
-            ->orderBy('order')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($roles, 200);
@@ -52,9 +52,8 @@ class RolesController extends Controller
 
     public function update(Request $request, $id)
     {
-        $role = Role::where('id', $id)
-            ->where('estado', '!=', 0)
-            ->firstOrFail();
+        $role = Role::activos()
+            ->findOrFail($id);
 
         $validated = $this->validateRoles($request, $id);
 

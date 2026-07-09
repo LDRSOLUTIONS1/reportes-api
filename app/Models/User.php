@@ -32,4 +32,9 @@ class User extends Authenticatable
     {
         return $this->belongsTo(Role::class);
     }
+
+    public function scopeActivos($query)
+    {
+        return $query->whereIn('estado', [1, 2]);
+    }
 }

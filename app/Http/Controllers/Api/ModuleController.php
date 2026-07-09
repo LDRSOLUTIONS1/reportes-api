@@ -10,7 +10,7 @@ class ModuleController extends Controller
 {
     public function index()
     {
-        $modules  = Module::select(
+        $modules = Module::select(
             'id',
             'parent_id',
             'name',
@@ -22,7 +22,7 @@ class ModuleController extends Controller
             'created_at',
         )
             ->activos()
-            ->orderBy('order')
+            ->orderBy('id', 'desc')
             ->get();
 
         return response()->json($modules, 200);
@@ -63,7 +63,7 @@ class ModuleController extends Controller
     public function update(Request $request, $id)
     {
         $module = Module::activos()
-            ->firstOrFail($id);
+            ->findOrFail($id);
 
         $validated = $this->validateModules($request, $id);
 
@@ -83,8 +83,8 @@ class ModuleController extends Controller
                 'name' => 'required|string|max:255|unique:modules,name,' . $id,
                 'title' => 'required|string|max:255',
                 'segment' => 'required|string|max:255',
-                'icon' => 'required|string|max:255',
-                'order' => 'required|integer',
+                'icon' => 'nullable|string|max:255',
+                'order' => 'nullable|integer',
                 'estado' => 'nullable|in:0,1,2',
             ],
             [
@@ -96,8 +96,10 @@ class ModuleController extends Controller
                 'title.max'      => 'El título no puede tener más de 255 caracteres',
                 'segment.required' => 'El segmento es obligatorio',
                 'segment.max'      => 'El segmento no puede tener más de 255 caracteres',
-                'icon.required' => 'El icono es obligatorio',
+                'icon.nullable' => 'El icono es opcional',
                 'icon.max'      => 'El icono no puede tener más de 255 caracteres',
+                'order.nullable' => 'El orden es opcional',
+                'order.integer' => 'El orden debe ser un entero',
                 'estado.in'     => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
             ]
         );

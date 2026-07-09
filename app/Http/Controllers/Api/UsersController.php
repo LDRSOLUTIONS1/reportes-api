@@ -10,59 +10,58 @@ class UsersController extends Controller
 {
     public function index()
     {
-        $roles = User::select(
+        $usuarios = User::select(
             'id',
             'name',
             'estado',
             'created_at',
         )
-            ->where('estado', '!=', 0)
+            ->activos()
             ->orderBy('id', 'desc')
             ->get();
 
-        return response()->json($roles, 200);
+        return response()->json($usuarios, 200);
     }
 
     public function store(Request $request)
     {
         $validated = $this->validateUsers($request);
 
-        $role = User::create($validated);
+        $usuario = User::create($validated);
 
         return response()->json([
             'message' => 'Usuario creado correctamente',
-            'data'    => $role
+            'data'    => $usuario
         ], 201);
     }
 
     public function show($id)
     {
-        $role = User::select(
+        $usuario = User::select(
             'id',
             'name',
             'estado',
             'created_at',
         )
             ->where('id', $id)
-            ->where('estado', '!=', 0)
+            ->activos()
             ->firstOrFail();
 
-        return response()->json($role, 200);
+        return response()->json($usuario, 200);
     }
 
     public function update(Request $request, $id)
     {
-        $role = User::where('id', $id)
-            ->where('estado', '!=', 0)
-            ->firstOrFail();
+        $usuario = User::activos()
+            ->findOrFail($id);
 
         $validated = $this->validateUsers($request, $id);
 
-        $role->update($validated);
+        $usuario->update($validated);
 
         return response()->json([
             'message' => 'Usuario actualizado correctamente',
-            'data'    => $role
+            'data'    => $usuario
         ], 200);
     }
 
