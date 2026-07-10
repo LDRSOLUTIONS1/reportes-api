@@ -1,169 +1,98 @@
 <?php
-// app/Http/Controllers/Api/VisitReportController.php
 
 namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
 use App\Models\VisitReport;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
 
 class VisitReportController extends Controller
 {
-    /**
-     * GET /api/visit-reports
-     * Lista con filtros: tipo, status, fecha, segmento, user_id
-     */
-    public function index(Request $request)
+    public function index()
     {
-        $query = VisitReport::with([
-            'user:id,name,role,segmento',
-            'clientVisit:id,visit_report_id,razon_social,tipo_cliente',
-            'distributorVisit:id,visit_report_id,distribuidor,plaza',
-        ]);
+        $visits = VisitReport::select(
+            'id',
+            'user_id',
+            'visit_type',
+            'tipo_visita',
+            'objetivo',
+            'logros_estrategia',
+            'segmento',
+            'fecha_inicio',
+            'fecha_fin',
+            'status',
+            'estado',
+            'created_at',
+        )
+            ->activos()
+            ->orderBy('id', 'desc')
+            ->get();
 
-        if ($request->filled('visit_type')) {
-            $query->where('visit_type', $request->visit_type);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('segmento')) {
-            $query->where('segmento', $request->segmento);
-        }
-
-        if ($request->filled('user_id')) {
-            $query->where('user_id', $request->user_id);
-        }
-
-        if ($request->filled('fecha_inicio')) {
-            $query->whereDate('fecha_inicio', '>=', $request->fecha_inicio);
-        }
-
-        if ($request->filled('fecha_fin')) {
-            $query->whereDate('fecha_inicio', '<=', $request->fecha_fin);
-        }
-
-        // Gte regional solo ve sus propios reportes
-        if ($request->user()->role === 'gte_regional') {
-            $query->where('user_id', $request->user()->id);
-        }
-
-        $reports = $query->orderByDesc('fecha_inicio')->paginate(15);
-
-        return response()->json($reports);
+        return response()->json($visits, 200);
     }
 
-    /**
-     * POST /api/visit-reports
-     * Crea solo el encabezado del reporte
-     */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'visit_type'        => 'required|in:cliente_directo,distribuidor',
-            'tipo_visita'       => 'required|in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,otro',
-            'objetivo'          => 'nullable|string|max:500',
-            'logros_estrategia' => 'nullable|string',
-            'segmento'          => 'nullable|string|max:100',
-            'fecha_inicio'      => 'required|date',
-            'fecha_fin'         => 'nullable|date|after_or_equal:fecha_inicio',
-            'status'            => 'in:borrador,enviado,revisado',
-        ]);
+        $validated = $this->validateVisit($request);
 
-        $report = $request->user()->visitReports()->create($validated);
+        $visit = VisitReport::create($validated);
 
-        return response()->json($report, 201);
+        return response()->json([
+            'message' => 'Reporte de visita creado correctamente',
+            'data'    => $visit
+        ], 201);
     }
 
-    /**
-     * GET /api/visit-reports/{id}
-     * Detalle completo según tipo de visita
-     */
-    public function show(Request $request, VisitReport $visitReport)
+    public function show($id)
     {
-        $this->authorizeAccess($request->user(), $visitReport);
+        $visit = VisitReport::select(
+            'user_id',
+            'visit_type',
+            'tipo_visita',
+            'objetivo',
+            'logros_estrategia',
+            'segmento',
+            'fecha_inicio',
+            'fecha_fin',
+            'status',
+            'estado',
+            'created_at',
+        )
+            ->where('id', $id)
+            ->activos()
+            ->firstOrFail();
 
-        if ($visitReport->visit_type === 'cliente_directo') {
-            $visitReport->load([
-                'user:id,name,role,segmento',
-                'clientVisit.contacts',
-                'clientVisit.fleetInfo',
-                'clientVisit.salesHistory',
-                'clientVisit.events',
-                'clientVisit.requirements',
-                'followupAgreements',
-                'trainingData',
-                'attachments',
-            ]);
-        } else {
-            $visitReport->load([
-                'user:id,name,role,segmento',
-                'distributorVisit.leads',
-                'distributorVisit.commercialIndicators',
-                'followupAgreements',
-                'trainingData',
-                'attachments',
-            ]);
-        }
-
-        return response()->json($visitReport);
+        return response()->json($visit, 200);
     }
 
-    /**
-     * PUT /api/visit-reports/{id}
-     * Actualiza encabezado del reporte
-     */
-    public function update(Request $request, VisitReport $visitReport)
+    public function update(Request $request, $id)
     {
-        $this->authorizeAccess($request->user(), $visitReport);
+        $visit = VisitReport::activos()
+            ->findOrFail($id);
 
-        $validated = $request->validate([
-            'tipo_visita'       => 'in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,otro',
-            'objetivo'          => 'nullable|string|max:500',
-            'logros_estrategia' => 'nullable|string',
-            'segmento'          => 'nullable|string|max:100',
-            'fecha_inicio'      => 'date',
-            'fecha_fin'         => 'nullable|date|after_or_equal:fecha_inicio',
-            'status'            => 'in:borrador,enviado,revisado',
-        ]);
+        $validated = $this->validateVisit($request, $id);
 
-        $visitReport->update($validated);
+        $visit->update($validated);
 
-        return response()->json($visitReport);
+        return response()->json([
+            'message' => 'Reporte de visita actualizado correctamente',
+            'data'    => $visit
+        ], 200);
     }
 
-    /**
-     * DELETE /api/visit-reports/{id}
-     */
-    public function destroy(Request $request, VisitReport $visitReport)
+    public function validateVisit(Request $request, $id = null)
     {
-        $this->authorizeAccess($request->user(), $visitReport);
-
-        $visitReport->delete();
-
-        return response()->json(['message' => 'Reporte eliminado correctamente.']);
-    }
-
-    /**
-     * PATCH /api/visit-reports/{id}/submit
-     * Enviar reporte (cambiar status a 'enviado')
-     */
-    public function submit(Request $request, VisitReport $visitReport)
-    {
-        $this->authorizeAccess($request->user(), $visitReport);
-
-        $visitReport->update(['status' => 'enviado']);
-
-        return response()->json(['message' => 'Reporte enviado correctamente.', 'report' => $visitReport]);
-    }
-
-    // Helper: solo admin ve todo; gte_regional solo los suyos
-    private function authorizeAccess($user, VisitReport $report): void
-    {
-        if ($user->role !== 'admin' && $report->user_id !== $user->id) {
-            abort(403, 'No tienes permiso para acceder a este reporte.');
-        }
+        return $request->validate(
+            [
+                'name' => 'required|string|max:255|unique:roles,name,' . $id,
+                'estado' => 'nullable|in:0,1,2',
+            ],
+            [
+                'name.required' => 'El nombre es obligatorio',
+                'name.max'      => 'El nombre no puede tener más de 255 caracteres',
+                'name.unique'   => 'El nombre ya existe',
+                'estado.in'     => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
+            ]
+        );
     }
 }

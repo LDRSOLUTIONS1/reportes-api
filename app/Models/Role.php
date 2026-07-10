@@ -14,21 +14,13 @@ class Role extends Model
         'description',
         'estado',
     ];
-
-
-    public function users()
-    {
-        return $this->belongsToMany(
-            User::class,
-            'user_roles'
-        );
-    }
-
+    
     public function modulePermissions()
     {
         return $this->hasMany(RoleModulePermission::class);
     }
 
+    // Scopes
     public function scopeActivos($query)
     {
         return $query->whereIn('estado', [1, 2]);
