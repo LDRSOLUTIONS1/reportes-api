@@ -35,6 +35,8 @@ class VisitReportController extends Controller
     {
         $validated = $this->validateVisit($request);
 
+        $validated['user_id'] = auth()->id();
+
         $visit = VisitReport::create($validated);
 
         return response()->json([
@@ -46,6 +48,7 @@ class VisitReportController extends Controller
     public function show($id)
     {
         $visit = VisitReport::select(
+            'id',
             'user_id',
             'visit_type',
             'tipo_visita',
@@ -70,7 +73,7 @@ class VisitReportController extends Controller
         $visit = VisitReport::activos()
             ->findOrFail($id);
 
-        $validated = $this->validateVisit($request, $id);
+        $validated = $this->validateVisit($request);
 
         $visit->update($validated);
 
@@ -80,18 +83,31 @@ class VisitReportController extends Controller
         ], 200);
     }
 
-    public function validateVisit(Request $request, $id = null)
+    public function validateVisit(Request $request)
     {
         return $request->validate(
             [
-                'name' => 'required|string|max:255|unique:roles,name,' . $id,
+                'visit_type' => 'required|in:cliente_directo,distribuidor',
+                'tipo_visita' => 'required|in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,otro',
+                'objetivo' => 'nullable|string|max:255',
+                'logros_estrategia' => 'nullable|string',
+                'segmento' => 'nullable|string|max:255',
+                'fecha_inicio' => 'required|date',
+                'fecha_fin' => 'nullable|date|after_or_equal:fecha_inicio',
                 'estado' => 'nullable|in:0,1,2',
             ],
             [
-                'name.required' => 'El nombre es obligatorio',
-                'name.max'      => 'El nombre no puede tener más de 255 caracteres',
-                'name.unique'   => 'El nombre ya existe',
-                'estado.in'     => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
+                'visit_type.required' => 'Debe seleccionar el tipo de visita comercial.',
+                'visit_type.in' => 'El tipo de visita comercial seleccionado no es válido.',
+                'tipo_visita.required' => 'Debe seleccionar el tipo de visita.',
+                'tipo_visita.in' => 'El tipo de visita seleccionado no es válido.',
+                'objetivo.max' => 'El objetivo no puede tener más de 255 caracteres.',
+                'segmento.max' => 'El segmento no puede tener más de 255 caracteres.',
+                'fecha_inicio.required' => 'La fecha de inicio es obligatoria.',
+                'fecha_inicio.date' => 'La fecha de inicio no es válida.',
+                'fecha_fin.date' => 'La fecha de fin no es válida.',
+                'fecha_fin.after_or_equal' => 'La fecha de fin debe ser igual o posterior a la fecha de inicio.',
+                'estado.in' => 'El estado debe ser 0 (Eliminado), 1 (Inactivo) o 2 (Activo).',
             ]
         );
     }

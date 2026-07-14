@@ -13,7 +13,7 @@ class ModuleController extends Controller
         $modules = Module::select(
             'id',
             'parent_id',
-            'name',
+            'name', 
             'title',
             'segment',
             'icon',
