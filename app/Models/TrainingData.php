@@ -9,6 +9,8 @@ class TrainingData extends Model
 {
     use HasFactory;
 
+    protected $table = 'training_data';
+
     protected $fillable = [
         'visit_report_id',
         'tipo',

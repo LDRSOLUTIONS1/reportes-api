@@ -9,6 +9,8 @@ class FleetInfo extends Model
 {
     use HasFactory;
 
+    protected $table = 'fleet_info';
+
     protected $fillable = [
         'client_visit_id',
         'marca',

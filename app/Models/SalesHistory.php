@@ -9,6 +9,8 @@ class SalesHistory extends Model
 {
     use HasFactory;
 
+    protected $table = 'sales_history';
+
     protected $fillable = [
         'client_visit_id',
         'anio',

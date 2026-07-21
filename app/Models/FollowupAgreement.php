@@ -9,6 +9,8 @@ class FollowupAgreement extends Model
 {
     use HasFactory;
 
+    protected $table = 'followup_agreements';
+
     protected $fillable = [
         'visit_report_id',
         'acuerdo',

@@ -18,6 +18,7 @@ return new class extends Migration
                 'capacitacion_producto',
                 'acompanamiento_comercial',
                 'operativa',
+                'capacitacion',
                 'otro'
             ]);
             $table->string('objetivo')->nullable();

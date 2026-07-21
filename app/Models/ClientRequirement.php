@@ -9,6 +9,8 @@ class ClientRequirement extends Model
 {
     use HasFactory;
 
+    protected $table = 'client_requirements';
+
     protected $fillable = [
         'client_visit_id',
         'modelo_interes',

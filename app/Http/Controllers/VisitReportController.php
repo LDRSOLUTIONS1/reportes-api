@@ -68,6 +68,36 @@ class VisitReportController extends Controller
         return response()->json($visit, 200);
     }
 
+    public function editarVisita($id)
+    {
+        $visit = VisitReport::with([
+            'clientVisit:id,visit_report_id,razon_social,ubicaciones,tamanio_flota,giro,rutas,cobertura,tipo_cliente,edad_promedio_flota,logo_path',
+            'clientVisit.contacts:id,client_visit_id,nombre,puesto,email,telefono',
+            'clientVisit.fleetInfo:id,client_visit_id,marca,modelo,capacidad_carga,cantidad,porcentaje_flota,comentarios_aplicacion',
+            'clientVisit.salesHistory:id,client_visit_id,anio,cantidad',
+            'clientVisit.events:id,client_visit_id,nombre_evento,tipo',
+            'clientVisit.requirements:id,client_visit_id,modelo_interes,tipo_carroceria,proyeccion_compra,financiamiento,tiempo_entrega,lugar_entrega,distribuidor,demo,otro',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,fecha_compromiso',
+            'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
+
+        ])->select(
+            'id',
+            'user_id',
+            'visit_type',
+            'tipo_visita',
+            'objetivo',
+            'logros_estrategia',
+            'segmento',
+            'fecha_inicio',
+            'fecha_fin',
+        )
+            ->where('id', $id)
+            ->activos()
+            ->firstOrFail();
+
+        return response()->json($visit, 200);
+    }
+
     public function update(Request $request, $id)
     {
         $visit = VisitReport::activos()
@@ -88,7 +118,7 @@ class VisitReportController extends Controller
         return $request->validate(
             [
                 'visit_type' => 'required|in:cliente_directo,distribuidor',
-                'tipo_visita' => 'required|in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,otro',
+                'tipo_visita' => 'required|in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,capacitacion_otro',
                 'objetivo' => 'nullable|string|max:255',
                 'logros_estrategia' => 'nullable|string',
                 'segmento' => 'nullable|string|max:255',
