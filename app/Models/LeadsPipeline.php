@@ -9,6 +9,8 @@ class LeadsPipeline extends Model
 {
     use HasFactory;
 
+    protected $table = 'leads_pipeline';
+
     protected $fillable = [
         'distributor_visit_id',
         'cliente',

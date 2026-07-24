@@ -16,6 +16,8 @@ class VisitAttachment extends Model
         'tipo',
     ];
 
+    protected $appends = ['url'];
+
     // Relaciones
     public function visitReport()
     {

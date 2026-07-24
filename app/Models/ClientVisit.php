@@ -22,6 +22,8 @@ class ClientVisit extends Model
         'logo_path',
     ];
 
+    protected $appends = ['url'];
+
     // Relaciones
     public function visitReport()
     {
@@ -51,5 +53,10 @@ class ClientVisit extends Model
     public function requirements()
     {
         return $this->hasOne(ClientRequirement::class);
+    }
+
+    public function getUrlAttribute()
+    {
+        return asset('storage/' . $this->logo_path);
     }
 }

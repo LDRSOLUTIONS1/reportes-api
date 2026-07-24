@@ -9,6 +9,8 @@ class DistributorVisit extends Model
 {
     use HasFactory;
 
+    protected $table = 'distributor_visits';
+
     protected $fillable = [
         'visit_report_id',
         'distribuidor',
@@ -34,7 +36,7 @@ class DistributorVisit extends Model
     {
         return $this->hasMany(LeadsPipeline::class);
     }
-
+    
     public function commercialIndicators()
     {
         return $this->hasMany(CommercialIndicator::class);

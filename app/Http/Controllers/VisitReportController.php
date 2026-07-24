@@ -77,9 +77,12 @@ class VisitReportController extends Controller
             'clientVisit.salesHistory:id,client_visit_id,anio,cantidad',
             'clientVisit.events:id,client_visit_id,nombre_evento,tipo',
             'clientVisit.requirements:id,client_visit_id,modelo_interes,tipo_carroceria,proyeccion_compra,financiamiento,tiempo_entrega,lugar_entrega,distribuidor,demo,otro',
+            'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
+            'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
+            'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
             'followupAgreements:id,visit_report_id,acuerdo,responsable,fecha_compromiso',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
-
+            'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
             'id',
             'user_id',
