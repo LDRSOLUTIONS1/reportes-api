@@ -6,6 +6,7 @@ use App\Models\VisitReport;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\ClientVisit;
+use App\Models\DistributorVisit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -100,11 +101,9 @@ class VisitReportController extends Controller
         $visit = VisitReport::create($validated);
 
         if ($visit->visit_type === 'cliente_directo') {
-
             $clientData = $this->validateClientVisit($request);
 
             $logoPath = $this->uploadLogo($request);
-
             if ($logoPath) {
                 $clientData['logo_path'] = $logoPath;
             }
@@ -112,37 +111,36 @@ class VisitReportController extends Controller
             $clientVisit = $this->storeClientVisit($visit, $clientData);
 
             $contacts = $this->validateContacts($this->getContacts($request));
-
             $this->storeContacts($clientVisit, $contacts);
 
             $fleet = $this->validateFleetInfo($this->getFleetInfo($request));
-
             $this->storeFleetInfo($clientVisit, $fleet);
 
             $history = $this->validateSalesHistory($this->getSalesHistory($request));
-
             $this->storeSalesHistory($clientVisit, $history);
 
             $this->storeEvents($clientVisit, $request);
 
             $requirements = $this->validateRequirements($request);
-
             $this->storeRequirements($clientVisit, $requirements);
         }
 
         if ($visit->visit_type === 'distribuidor') {
+            $distributorData = $this->validateDistributorVisit($request);
+            $distributorVisit = $this->storeDistributorVisit($visit, $distributorData);
+
+            $leads = $this->validateLeads($this->getLeads($request));
+            $this->storeLeads($distributorVisit, $leads);
+
+            $indicators = $this->validateCommercialIndicators($this->getCommercialIndicators($request));
+            $this->storeCommercialIndicators($distributorVisit, $indicators);
         }
 
         $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
-
         $this->storeFollowupAgreements($visit, $agreements);
-
         $trainingData = $this->validateTrainingData($request);
-
         $this->storeTrainingData($visit, $trainingData);
-
         $this->validateAttachments($request);
-
         $this->storeAttachments($visit, $request);
 
         return response()->json([
@@ -161,10 +159,10 @@ class VisitReportController extends Controller
         foreach ($contacts as $contact) {
 
             $clientVisit->contacts()->create([
-                'nombre' => $contact['nombre'],
-                'puesto' => $contact['puesto'],
-                'email' => $contact['email'] ?? null,
-                'telefono' => $contact['telefono'],
+                'nombre'    => $contact['nombre'],
+                'puesto'    => $contact['puesto'],
+                'email'     => $contact['email'] ?? null,
+                'telefono'  => $contact['telefono'],
             ]);
         }
     }
@@ -174,11 +172,11 @@ class VisitReportController extends Controller
         foreach ($fleet as $item) {
 
             $clientVisit->fleetInfo()->create([
-                'marca' => $item['marca'],
-                'modelo' => $item['modelo'],
-                'capacidad_carga' => $item['capacidad_carga'],
-                'cantidad' => $item['cantidad'],
-                'porcentaje_flota' => $item['porcentaje_flota'] ?? null,
+                'marca'                  => $item['marca'],
+                'modelo'                 => $item['modelo'],
+                'capacidad_carga'        => $item['capacidad_carga'],
+                'cantidad'               => $item['cantidad'],
+                'porcentaje_flota'       => $item['porcentaje_flota'] ?? null,
                 'comentarios_aplicacion' => $item['comentarios_aplicacion'] ?? null,
             ]);
         }
@@ -189,8 +187,8 @@ class VisitReportController extends Controller
         foreach ($history as $item) {
 
             $clientVisit->salesHistory()->create([
-                'anio' => $item['anio'],
-                'cantidad' => $item['cantidad'],
+                'anio'      => $item['anio'],
+                'cantidad'  => $item['cantidad'],
             ]);
         }
     }
@@ -205,7 +203,7 @@ class VisitReportController extends Controller
 
                 $eventos[] = [
                     'nombre_evento' => $nombre,
-                    'tipo' => 'asistio',
+                    'tipo'          => 'asistio',
                 ];
             }
         }
@@ -214,7 +212,7 @@ class VisitReportController extends Controller
 
             $eventos[] = [
                 'nombre_evento' => $request->eventos_asistio_otro,
-                'tipo' => 'asistio',
+                'tipo'          => 'asistio',
             ];
         }
 
@@ -224,7 +222,7 @@ class VisitReportController extends Controller
 
                 $eventos[] = [
                     'nombre_evento' => $nombre,
-                    'tipo' => 'candidato',
+                    'tipo'          => 'candidato',
                 ];
             }
         }
@@ -233,7 +231,7 @@ class VisitReportController extends Controller
 
             $eventos[] = [
                 'nombre_evento' => $request->eventos_candidato_otro,
-                'tipo' => 'candidato',
+                'tipo'          => 'candidato',
             ];
         }
 
@@ -252,9 +250,9 @@ class VisitReportController extends Controller
         foreach ($agreements as $agreement) {
 
             $visit->followupAgreements()->create([
-                'acuerdo' => $agreement['acuerdo'],
-                'responsable' => $agreement['responsable'],
-                'fecha_compromiso' => $agreement['fecha_compromiso'],
+                'acuerdo'           => $agreement['acuerdo'],
+                'responsable'       => $agreement['responsable'],
+                'fecha_compromiso'  => $agreement['fecha_compromiso'],
             ]);
         }
     }
@@ -268,7 +266,6 @@ class VisitReportController extends Controller
         VisitReport $visit,
         Request $request
     ) {
-
         if (!$request->hasFile('evidencias')) {
             return;
         }
@@ -281,16 +278,50 @@ class VisitReportController extends Controller
             );
 
             $visit->attachments()->create([
-
                 'filename' => $file->getClientOriginalName(),
-
-                'path' => $path,
-
-                'tipo' => str_starts_with(
+                'path'     => $path,
+                'tipo'     => str_starts_with(
                     $file->getMimeType(),
                     'image/'
-                ) ? 'imagen' : 'archivo',
+                ) ? 'foto' : 'anexo',
+            ]);
+        }
+    }
 
+    private function storeDistributorVisit(VisitReport $visit, array $data)
+    {
+        return $visit->distributorVisit()->create($data);
+    }
+
+    private function storeLeads(
+        DistributorVisit $distributorVisit,
+        array $leads
+    ) {
+        foreach ($leads as $lead) {
+
+            $distributorVisit->leads()->create([
+                'cliente'           => $lead['cliente'],
+                'modelo_interes'    => $lead['modelo_interes'] ?? null,
+                'porcentaje_avance' => $lead['porcentaje_avance'] ?? null,
+                'comentarios'       => $lead['comentarios'] ?? null,
+            ]);
+        }
+    }
+
+    private function storeCommercialIndicators(
+        DistributorVisit $distributorVisit,
+        array $indicators
+    ) {
+        foreach ($indicators as $indicator) {
+
+            $distributorVisit->commercialIndicators()->create([
+                'modelo'            => $indicator['modelo'],
+                'bp_2025'           => $indicator['bp_2025'] ?? null,
+                'whole_ytd'         => $indicator['whole_ytd'] ?? null,
+                'porcentaje_avance' => $indicator['porcentaje_avance'] ?? null,
+                'retail_ytd'        => $indicator['retail_ytd'] ?? null,
+                'inventario'        => $indicator['inventario'] ?? null,
+                'back_order'        => $indicator['back_order'] ?? null,
             ]);
         }
     }
@@ -315,6 +346,48 @@ class VisitReportController extends Controller
         return json_decode($request->followup_agreements, true) ?? [];
     }
 
+    private function getParticipantes(Request $request)
+    {
+        return json_decode($request->participantes, true) ?? [];
+    }
+
+    private function getTemasRevisados(Request $request)
+    {
+        $temas = json_decode($request->temas_revisados, true) ?? [];
+
+        $resultado = [];
+
+        foreach ($temas as $tema => $checked) {
+
+            if (!$checked) {
+                continue;
+            }
+
+            if ($tema === 'otros') {
+
+                if ($request->filled('temas_revisados_otro')) {
+                    $resultado[] = $request->temas_revisados_otro;
+                }
+
+                continue;
+            }
+
+            $resultado[] = $tema;
+        }
+
+        return $resultado;
+    }
+
+    private function getLeads(Request $request)
+    {
+        return json_decode($request->leads, true) ?? [];
+    }
+
+    private function getCommercialIndicators(Request $request)
+    {
+        return json_decode($request->commercial_indicators, true) ?? [];
+    }
+
     public function update(Request $request, $id)
     {
         $visit = VisitReport::activos()->findOrFail($id);
@@ -323,11 +396,9 @@ class VisitReportController extends Controller
         $visit->update($validated);
 
         if ($visit->visit_type === 'cliente_directo') {
-
             $clientData = $this->validateClientVisit($request);
 
             $logoPath = $this->uploadLogo($request);
-
             if ($logoPath) {
                 $clientData['logo_path'] = $logoPath;
             }
@@ -335,37 +406,36 @@ class VisitReportController extends Controller
             $clientVisit = $this->updateClientVisit($visit, $clientData);
 
             $contacts = $this->validateContacts($this->getContacts($request));
-
             $this->updateContacts($clientVisit, $contacts);
 
             $fleet = $this->validateFleetInfo($this->getFleetInfo($request));
-
             $this->updateFleetInfo($clientVisit, $fleet);
 
             $history = $this->validateSalesHistory($this->getSalesHistory($request));
-
             $this->updateSalesHistory($clientVisit, $history);
 
             $this->updateEvents($clientVisit, $request);
 
             $requirements = $this->validateRequirements($request);
-
             $this->updateRequirements($clientVisit, $requirements);
         }
 
-        if ($visit->visit_type === 'cliente_indirecto') {
+        if ($visit->visit_type === 'distribuidor') {
+            $distributorData = $this->validateDistributorVisit($request);
+            $distributorVisit = $this->updateDistributorVisit($visit, $distributorData);
+
+            $leads = $this->validateLeads($this->getLeads($request));
+            $this->updateLeads($distributorVisit, $leads);
+
+            $indicators = $this->validateCommercialIndicators($this->getCommercialIndicators($request));
+            $this->updateCommercialIndicators($distributorVisit, $indicators);
         }
 
         $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
-
         $this->updateFollowupAgreements($visit, $agreements);
-
         $trainingData = $this->validateTrainingData($request);
-
         $this->updateTrainingData($visit, $trainingData);
-
         $this->validateAttachments($request);
-
         $this->updateAttachments($visit, $request);
 
         return response()->json([
@@ -555,6 +625,77 @@ class VisitReportController extends Controller
         );
     }
 
+    private function updateDistributorVisit(VisitReport $visit, array $data)
+    {
+        return $visit->distributorVisit()->updateOrCreate(
+            [
+                'visit_report_id' => $visit->id,
+            ],
+            $data
+        );
+    }
+
+    private function updateLeads(
+        DistributorVisit $distributorVisit,
+        array $leads
+    ) {
+        $ids = collect($leads)
+            ->pluck('id')
+            ->filter()
+            ->toArray();
+
+        $distributorVisit->leads()
+            ->whereNotIn('id', $ids)
+            ->delete();
+
+        foreach ($leads as $lead) {
+
+            $distributorVisit->leads()->updateOrCreate(
+                [
+                    'id' => $lead['id'] ?? null,
+                ],
+                [
+                    'cliente' => $lead['cliente'],
+                    'modelo_interes' => $lead['modelo_interes'] ?? null,
+                    'porcentaje_avance' => $lead['porcentaje_avance'] ?? null,
+                    'comentarios' => $lead['comentarios'] ?? null,
+                ]
+            );
+        }
+    }
+
+    private function updateCommercialIndicators(
+        DistributorVisit $distributorVisit,
+        array $indicators
+    ) {
+        $ids = collect($indicators)
+            ->pluck('id')
+            ->filter()
+            ->toArray();
+
+        $distributorVisit->commercialIndicators()
+            ->whereNotIn('id', $ids)
+            ->delete();
+
+        foreach ($indicators as $indicator) {
+
+            $distributorVisit->commercialIndicators()->updateOrCreate(
+                [
+                    'id' => $indicator['id'] ?? null,
+                ],
+                [
+                    'modelo' => $indicator['modelo'],
+                    'bp_2025' => $indicator['bp_2025'] ?? null,
+                    'whole_ytd' => $indicator['whole_ytd'] ?? null,
+                    'porcentaje_avance' => $indicator['porcentaje_avance'] ?? null,
+                    'retail_ytd' => $indicator['retail_ytd'] ?? null,
+                    'inventario' => $indicator['inventario'] ?? null,
+                    'back_order' => $indicator['back_order'] ?? null,
+                ]
+            );
+        }
+    }
+
     public function validateVisit(Request $request)
     {
         return $request->validate(
@@ -722,17 +863,77 @@ class VisitReportController extends Controller
     {
         return $request->validate(
             [
-                'evidencias' => 'nullable|array|max:10',
-                'evidencias.*' =>
-                'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
-                'evidencias_existentes' => 'nullable|array',
+                'evidencias'            =>  'nullable|array|max:10',
+                'evidencias.*'          =>  'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
+                'evidencias_existentes' =>  'nullable|array',
             ],
             [
-                'evidencias.array' => 'Las evidencias deben ser un array.',
-                'evidencias.*.file' => 'Las evidencias deben ser archivos.',
-                'evidencias.*.mimes' => 'Las evidencias deben ser de tipo JPG, JPEG, PNG, PDF, DOC o DOCX.',
-                'evidencias.*.max' => 'Las evidencias no pueden superar los 10MB.',
+                'evidencias.array'      => 'Las evidencias deben ser un array.',
+                'evidencias.*.file'     => 'Las evidencias deben ser archivos.',
+                'evidencias.*.mimes'    => 'Las evidencias deben ser de tipo JPG, JPEG, PNG, PDF, DOC o DOCX.',
+                'evidencias.*.max'      => 'Las evidencias no pueden superar los 10MB.',
             ]
         );;
+    }
+
+    private function validateDistributorVisit(Request $request)
+    {
+        $data = $request->validate([
+            'distribuidor'             => 'required|string|max:255',
+            'plaza'                    => 'required|string|max:255',
+            'grupo'                    => 'required|string|max:255',
+            'comentarios_adicionales'  => 'nullable|string',
+            'temas_revisados_otro'     => 'nullable|string|max:255',
+        ]);
+
+        $data['participantes'] = $this->validateParticipantes(
+            $this->getParticipantes($request)
+        );
+
+        $data['temas_revisados'] = $this->getTemasRevisados($request);
+
+        return $data;
+    }
+
+    private function validateParticipantes(array $participantes)
+    {
+        return Validator::make(
+            ['participantes' => $participantes],
+            [
+                'participantes'            => 'array',
+                'participantes.*.nombre'   => 'required|string|max:255',
+            ]
+        )->validate()['participantes'];
+    }
+
+    private function validateLeads(array $leads)
+    {
+        return Validator::make(
+            ['leads' => $leads],
+            [
+                'leads'                     => 'array',
+                'leads.*.cliente'           => 'required|string|max:255',
+                'leads.*.modelo_interes'    => 'nullable|string|max:255',
+                'leads.*.porcentaje_avance' => 'nullable|numeric|min:0|max:100',
+                'leads.*.comentarios'       => 'nullable|string',
+            ]
+        )->validate()['leads'];
+    }
+
+    private function validateCommercialIndicators(array $indicators)
+    {
+        return Validator::make(
+            ['commercial_indicators' => $indicators],
+            [
+                'commercial_indicators'                     => 'array',
+                'commercial_indicators.*.modelo'            => 'required|string|max:255',
+                'commercial_indicators.*.bp_2025'           => 'nullable|numeric|min:0',
+                'commercial_indicators.*.whole_ytd'         => 'nullable|numeric|min:0',
+                'commercial_indicators.*.porcentaje_avance' => 'nullable|numeric|min:0|max:100',
+                'commercial_indicators.*.retail_ytd'        => 'nullable|numeric|min:0',
+                'commercial_indicators.*.inventario'        => 'nullable|integer|min:0',
+                'commercial_indicators.*.back_order'        => 'nullable|integer|min:0',
+            ]
+        )->validate()['commercial_indicators'];
     }
 }
