@@ -17,5 +17,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::resource('/modulos', ModuleController::class);
     Route::resource('visitas', VisitReportController::class);
 
-    Route::get('/editarVisita/{id}', [VisitReportController::class, 'editarVisita']);
+    Route::get('/getEditVisit/{id}', [VisitReportController::class, 'getEditVisit']);
+    Route::put('/editVisit/{id}', [VisitReportController::class, 'update']);
 });
