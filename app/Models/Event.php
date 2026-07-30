@@ -14,6 +14,7 @@ class Event extends Model
     protected $fillable = [
         'client_visit_id',
         'nombre_evento',
+        'otro_evento',
         'tipo',
     ];
 

@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('client_visit_id')->constrained()->cascadeOnDelete();
             $table->string('nombre_evento');
+            $table->string('otro_evento')->nullable();
             $table->enum('tipo', ['asistio', 'candidato']);
 
 

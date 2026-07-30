@@ -6,13 +6,20 @@ use App\Models\VisitReport;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\ClientVisit;
-use App\Models\DistributorVisit;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class VisitReportController extends Controller
 {
+    /**
+     * Rutas de archivos subidos durante el request actual.
+     * Si la transacción falla, se usan para limpiar storage.
+     */
+    private array $uploadedFilesForCleanup = [];
+
     public function index()
     {
         $visits = VisitReport::select(
@@ -66,7 +73,7 @@ class VisitReportController extends Controller
             'clientVisit.contacts:id,client_visit_id,nombre,puesto,email,telefono',
             'clientVisit.fleetInfo:id,client_visit_id,marca,modelo,capacidad_carga,cantidad,porcentaje_flota,comentarios_aplicacion',
             'clientVisit.salesHistory:id,client_visit_id,anio,cantidad',
-            'clientVisit.events:id,client_visit_id,nombre_evento,tipo',
+            'clientVisit.events:id,client_visit_id,nombre_evento,otro_evento,tipo',
             'clientVisit.requirements:id,client_visit_id,modelo_interes,tipo_carroceria,proyeccion_compra,financiamiento,tiempo_entrega,lugar_entrega,distribuidor,demo,otro',
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
@@ -95,53 +102,18 @@ class VisitReportController extends Controller
     public function store(Request $request)
     {
         $validated = $this->validateVisit($request);
-
         $validated['user_id'] = Auth::id();
 
-        $visit = VisitReport::create($validated);
-
-        if ($visit->visit_type === 'cliente_directo') {
-            $clientData = $this->validateClientVisit($request);
-
-            $logoPath = $this->uploadLogo($request);
-            if ($logoPath) {
-                $clientData['logo_path'] = $logoPath;
-            }
-
-            $clientVisit = $this->storeClientVisit($visit, $clientData);
-
-            $contacts = $this->validateContacts($this->getContacts($request));
-            $this->storeContacts($clientVisit, $contacts);
-
-            $fleet = $this->validateFleetInfo($this->getFleetInfo($request));
-            $this->storeFleetInfo($clientVisit, $fleet);
-
-            $history = $this->validateSalesHistory($this->getSalesHistory($request));
-            $this->storeSalesHistory($clientVisit, $history);
-
-            $this->storeEvents($clientVisit, $request);
-
-            $requirements = $this->validateRequirements($request);
-            $this->storeRequirements($clientVisit, $requirements);
+        try {
+            $visit = DB::transaction(function () use ($validated, $request) {
+                $visit = VisitReport::create($validated);
+                $this->saveVisitDetails($visit, $request);
+                return $visit;
+            });
+        } catch (\Throwable $e) {
+            $this->cleanupUploadedFiles();
+            throw $e;
         }
-
-        if ($visit->visit_type === 'distribuidor') {
-            $distributorData = $this->validateDistributorVisit($request);
-            $distributorVisit = $this->storeDistributorVisit($visit, $distributorData);
-
-            $leads = $this->validateLeads($this->getLeads($request));
-            $this->storeLeads($distributorVisit, $leads);
-
-            $indicators = $this->validateCommercialIndicators($this->getCommercialIndicators($request));
-            $this->storeCommercialIndicators($distributorVisit, $indicators);
-        }
-
-        $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
-        $this->storeFollowupAgreements($visit, $agreements);
-        $trainingData = $this->validateTrainingData($request);
-        $this->storeTrainingData($visit, $trainingData);
-        $this->validateAttachments($request);
-        $this->storeAttachments($visit, $request);
 
         return response()->json([
             'message' => 'Reporte de visita creado correctamente',
@@ -149,181 +121,263 @@ class VisitReportController extends Controller
         ], 201);
     }
 
-    private function storeClientVisit(VisitReport $visit, array $data)
+    public function update(Request $request, $id)
     {
-        return $visit->clientVisit()->create($data);
+        $visit = VisitReport::activos()->findOrFail($id);
+
+        $validated = $this->validateVisit($request);
+
+        try {
+            DB::transaction(function () use ($visit, $validated, $request) {
+                $visit->update($validated);
+                $this->saveVisitDetails($visit, $request);
+            });
+        } catch (\Throwable $e) {
+            $this->cleanupUploadedFiles();
+            throw $e;
+        }
+
+        return response()->json([
+            'message' => 'Reporte de visita actualizado correctamente',
+            'data'    => $visit
+        ], 200);
     }
 
-    private function storeContacts(ClientVisit $clientVisit, array $contacts)
+    /**
+     * Borra del storage cualquier archivo subido durante este request
+     * si la transacción de BD terminó fallando (evita huérfanos en disco).
+     */
+    private function cleanupUploadedFiles()
     {
-        foreach ($contacts as $contact) {
+        foreach ($this->uploadedFilesForCleanup as $path) {
+            Storage::disk('public')->delete($path);
+        }
 
-            $clientVisit->contacts()->create([
-                'nombre'    => $contact['nombre'],
-                'puesto'    => $contact['puesto'],
-                'email'     => $contact['email'] ?? null,
-                'telefono'  => $contact['telefono'],
-            ]);
+        $this->uploadedFilesForCleanup = [];
+    }
+
+    private function saveVisitDetails(VisitReport $visit, Request $request)
+    {
+        if ($visit->visit_type === 'cliente_directo') {
+            $this->saveClientDirectoDetails($visit, $request);
+        }
+
+        if ($visit->visit_type === 'distribuidor') {
+            $this->saveDistribuidorDetails($visit, $request);
+        }
+
+        $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
+        $this->syncChildren($visit->followupAgreements(), $agreements, fn($a) => [
+            'acuerdo'          => $a['acuerdo'],
+            'responsable'      => $a['responsable'],
+            'fecha_compromiso' => $a['fecha_compromiso'],
+        ]);
+
+        $trainingData = $this->validateTrainingData($request);
+        $visit->trainingData()->updateOrCreate(
+            ['visit_report_id' => $visit->id],
+            $trainingData
+        );
+
+        $this->validateAttachments($request);
+        $this->syncAttachments($visit, $request);
+    }
+
+    private function saveClientDirectoDetails(VisitReport $visit, Request $request)
+    {
+        $clientData   = $this->validateClientVisit($request);
+        $contacts     = $this->validateContacts($this->getContacts($request));
+        $fleet        = $this->validateFleetInfo($this->getFleetInfo($request));
+        $history      = $this->validateSalesHistory($this->getSalesHistory($request));
+        $requirements = $this->validateRequirements($request);
+        $requirements['demo'] = $requirements['demo'] === 'si';
+
+        $logoPath = $this->uploadLogo($request);
+        if ($logoPath) {
+            if ($visit->clientVisit && $visit->clientVisit->logo_path) {
+                Storage::disk('public')->delete($visit->clientVisit->logo_path);
+            }
+
+            $clientData['logo_path'] = $logoPath;
+            $this->uploadedFilesForCleanup[] = $logoPath;
+        }
+
+        $clientVisit = $visit->clientVisit()->updateOrCreate(
+            ['visit_report_id' => $visit->id],
+            $clientData
+        );
+
+        $this->syncChildren($clientVisit->contacts(), $contacts, fn($c) => [
+            'nombre'   => $c['nombre'],
+            'puesto'   => $c['puesto'],
+            'email'    => $c['email'] ?? null,
+            'telefono' => $c['telefono'],
+        ]);
+
+        $this->syncChildren($clientVisit->fleetInfo(), $fleet, fn($f) => [
+            'marca'                  => $f['marca'],
+            'modelo'                 => $f['modelo'],
+            'capacidad_carga'        => $f['capacidad_carga'],
+            'cantidad'               => $f['cantidad'],
+            'porcentaje_flota'       => $f['porcentaje_flota'] ?? null,
+            'comentarios_aplicacion' => $f['comentarios_aplicacion'] ?? null,
+        ]);
+
+        $this->syncChildren($clientVisit->salesHistory(), $history, fn($h) => [
+            'anio'     => $h['anio'],
+            'cantidad' => $h['cantidad'],
+        ]);
+
+        $this->syncEvents($clientVisit, $request);
+
+        $clientVisit->requirements()->updateOrCreate(
+            ['client_visit_id' => $clientVisit->id],
+            $requirements
+        );
+    }
+
+    private function saveDistribuidorDetails(VisitReport $visit, Request $request)
+    {
+        $distributorData = $this->validateDistributorVisit($request);
+
+        $distributorVisit = $visit->distributorVisit()->updateOrCreate(
+            ['visit_report_id' => $visit->id],
+            $distributorData
+        );
+
+        $leads = $this->validateLeads($this->getLeads($request));
+        $this->syncChildren($distributorVisit->leads(), $leads, fn($l) => [
+            'cliente'           => $l['cliente'],
+            'modelo_interes'    => $l['modelo_interes'] ?? null,
+            'porcentaje_avance' => $l['porcentaje_avance'] ?? null,
+            'comentarios'       => $l['comentarios'] ?? null,
+        ]);
+
+        $indicators = $this->validateCommercialIndicators($this->getCommercialIndicators($request));
+        $this->syncChildren($distributorVisit->commercialIndicators(), $indicators, fn($i) => [
+            'modelo'            => $i['modelo'],
+            'bp_2025'           => $i['bp_2025'] ?? null,
+            'whole_ytd'         => $i['whole_ytd'] ?? null,
+            'porcentaje_avance' => $i['porcentaje_avance'] ?? null,
+            'retail_ytd'        => $i['retail_ytd'] ?? null,
+            'inventario'        => $i['inventario'] ?? null,
+            'back_order'        => $i['back_order'] ?? null,
+        ]);
+    }
+
+    /**
+     * Sincroniza una colección hija identificada por 'id':
+     * borra los que ya no vienen en $items y crea/actualiza el resto.
+     * Sirve tanto para "store" (no hay nada que borrar) como para "update".
+     */
+    private function syncChildren(HasMany $relation, array $items, callable $mapper)
+    {
+        $ids = collect($items)->pluck('id')->filter()->toArray();
+
+        $relation->whereNotIn('id', $ids)->delete();
+
+        foreach ($items as $item) {
+            $relation->updateOrCreate(
+                ['id' => $item['id'] ?? null],
+                $mapper($item)
+            );
         }
     }
 
-    private function storeFleetInfo(ClientVisit $clientVisit, array $fleet)
-    {
-        foreach ($fleet as $item) {
-
-            $clientVisit->fleetInfo()->create([
-                'marca'                  => $item['marca'],
-                'modelo'                 => $item['modelo'],
-                'capacidad_carga'        => $item['capacidad_carga'],
-                'cantidad'               => $item['cantidad'],
-                'porcentaje_flota'       => $item['porcentaje_flota'] ?? null,
-                'comentarios_aplicacion' => $item['comentarios_aplicacion'] ?? null,
-            ]);
-        }
-    }
-
-    private function storeSalesHistory(ClientVisit $clientVisit, array $history)
-    {
-        foreach ($history as $item) {
-
-            $clientVisit->salesHistory()->create([
-                'anio'      => $item['anio'],
-                'cantidad'  => $item['cantidad'],
-            ]);
-        }
-    }
-
-    private function storeEvents(ClientVisit $clientVisit, Request $request)
+    private function syncEvents(ClientVisit $clientVisit, Request $request)
     {
         $eventos = [];
 
-        foreach (json_decode($request->eventos_asistio, true) ?? [] as $nombre => $checked) {
+        $eventosAsistio = json_decode(
+            $request->input('eventos_asistio', '{}'),
+            true
+        ) ?? [];
 
+        foreach ($eventosAsistio as $nombre => $checked) {
             if ($checked) {
-
                 $eventos[] = [
                     'nombre_evento' => $nombre,
+                    'otro_evento'   => null,
                     'tipo'          => 'asistio',
                 ];
             }
         }
 
-        if ($request->eventos_asistio_otro) {
-
+        if ($request->filled('eventos_asistio_otro')) {
             $eventos[] = [
-                'nombre_evento' => $request->eventos_asistio_otro,
+                'nombre_evento' => 'otro',
+                'otro_evento'   => $request->input('eventos_asistio_otro'),
                 'tipo'          => 'asistio',
             ];
         }
 
-        foreach (json_decode($request->eventos_candidato, true) ?? [] as $nombre => $checked) {
 
+        $eventosCandidato = json_decode(
+            $request->input('eventos_candidato', '{}'),
+            true
+        ) ?? [];
+
+        foreach ($eventosCandidato as $nombre => $checked) {
             if ($checked) {
-
                 $eventos[] = [
                     'nombre_evento' => $nombre,
+                    'otro_evento'   => null,
                     'tipo'          => 'candidato',
                 ];
             }
         }
 
-        if ($request->eventos_candidato_otro) {
-
+        if ($request->filled('eventos_candidato_otro')) {
             $eventos[] = [
-                'nombre_evento' => $request->eventos_candidato_otro,
+                'nombre_evento' => 'otro',
+                'otro_evento'   => $request->input('eventos_candidato_otro'),
                 'tipo'          => 'candidato',
             ];
         }
 
-        $clientVisit->events()->createMany($eventos);
-    }
 
-    private function storeRequirements(ClientVisit $clientVisit, array $data)
-    {
-        $data['demo'] = $data['demo'] === 'si';
+        $clientVisit->events()->delete();
 
-        return $clientVisit->requirements()->create($data);
-    }
-
-    private function storeFollowupAgreements(VisitReport $visit, array $agreements)
-    {
-        foreach ($agreements as $agreement) {
-
-            $visit->followupAgreements()->create([
-                'acuerdo'           => $agreement['acuerdo'],
-                'responsable'       => $agreement['responsable'],
-                'fecha_compromiso'  => $agreement['fecha_compromiso'],
-            ]);
+        if (!empty($eventos)) {
+            $clientVisit->events()->createMany($eventos);
         }
     }
 
-    private function storeTrainingData(VisitReport $visit, array $data)
+    private function syncAttachments(VisitReport $visit, Request $request)
     {
-        return $visit->trainingData()->create($data);
-    }
+        $existentes = $request->evidencias_existentes ?? [];
 
-    private function storeAttachments(
-        VisitReport $visit,
-        Request $request
-    ) {
+        $visit->attachments()
+            ->whereNotIn('id', $existentes)
+            ->get()
+            ->each(function ($attachment) {
+                Storage::disk('public')->delete($attachment->path);
+                $attachment->delete();
+            });
+
         if (!$request->hasFile('evidencias')) {
             return;
         }
 
         foreach ($request->file('evidencias') as $file) {
-
-            $path = $file->store(
-                'documents',
-                'public'
-            );
+            $path = $file->store('documents', 'public');
+            $this->uploadedFilesForCleanup[] = $path;
 
             $visit->attachments()->create([
                 'filename' => $file->getClientOriginalName(),
                 'path'     => $path,
-                'tipo'     => str_starts_with(
-                    $file->getMimeType(),
-                    'image/'
-                ) ? 'foto' : 'anexo',
+                'tipo'     => str_starts_with($file->getMimeType(), 'image/') ? 'foto' : 'anexo',
             ]);
         }
     }
 
-    private function storeDistributorVisit(VisitReport $visit, array $data)
+    private function uploadLogo(Request $request)
     {
-        return $visit->distributorVisit()->create($data);
-    }
-
-    private function storeLeads(
-        DistributorVisit $distributorVisit,
-        array $leads
-    ) {
-        foreach ($leads as $lead) {
-
-            $distributorVisit->leads()->create([
-                'cliente'           => $lead['cliente'],
-                'modelo_interes'    => $lead['modelo_interes'] ?? null,
-                'porcentaje_avance' => $lead['porcentaje_avance'] ?? null,
-                'comentarios'       => $lead['comentarios'] ?? null,
-            ]);
+        if (!$request->hasFile('logo_file')) {
+            return null;
         }
-    }
 
-    private function storeCommercialIndicators(
-        DistributorVisit $distributorVisit,
-        array $indicators
-    ) {
-        foreach ($indicators as $indicator) {
-
-            $distributorVisit->commercialIndicators()->create([
-                'modelo'            => $indicator['modelo'],
-                'bp_2025'           => $indicator['bp_2025'] ?? null,
-                'whole_ytd'         => $indicator['whole_ytd'] ?? null,
-                'porcentaje_avance' => $indicator['porcentaje_avance'] ?? null,
-                'retail_ytd'        => $indicator['retail_ytd'] ?? null,
-                'inventario'        => $indicator['inventario'] ?? null,
-                'back_order'        => $indicator['back_order'] ?? null,
-            ]);
-        }
+        return $request->file('logo_file')->store('documents', 'public');
     }
 
     private function getContacts(Request $request)
@@ -353,7 +407,10 @@ class VisitReportController extends Controller
 
     private function getTemasRevisados(Request $request)
     {
-        $temas = json_decode($request->temas_revisados, true) ?? [];
+        $temas = json_decode(
+            $request->input('temas_revisados', '{}'),
+            true
+        ) ?? [];
 
         $resultado = [];
 
@@ -365,8 +422,12 @@ class VisitReportController extends Controller
 
             if ($tema === 'otros') {
 
-                if ($request->filled('temas_revisados_otro')) {
-                    $resultado[] = $request->temas_revisados_otro;
+                $otro = trim(
+                    (string) $request->input('temas_revisados_otro', '')
+                );
+
+                if ($otro !== '') {
+                    $resultado[] = $otro;
                 }
 
                 continue;
@@ -386,314 +447,6 @@ class VisitReportController extends Controller
     private function getCommercialIndicators(Request $request)
     {
         return json_decode($request->commercial_indicators, true) ?? [];
-    }
-
-    public function update(Request $request, $id)
-    {
-        $visit = VisitReport::activos()->findOrFail($id);
-
-        $validated = $this->validateVisit($request);
-        $visit->update($validated);
-
-        if ($visit->visit_type === 'cliente_directo') {
-            $clientData = $this->validateClientVisit($request);
-
-            $logoPath = $this->uploadLogo($request);
-            if ($logoPath) {
-                $clientData['logo_path'] = $logoPath;
-            }
-
-            $clientVisit = $this->updateClientVisit($visit, $clientData);
-
-            $contacts = $this->validateContacts($this->getContacts($request));
-            $this->updateContacts($clientVisit, $contacts);
-
-            $fleet = $this->validateFleetInfo($this->getFleetInfo($request));
-            $this->updateFleetInfo($clientVisit, $fleet);
-
-            $history = $this->validateSalesHistory($this->getSalesHistory($request));
-            $this->updateSalesHistory($clientVisit, $history);
-
-            $this->updateEvents($clientVisit, $request);
-
-            $requirements = $this->validateRequirements($request);
-            $this->updateRequirements($clientVisit, $requirements);
-        }
-
-        if ($visit->visit_type === 'distribuidor') {
-            $distributorData = $this->validateDistributorVisit($request);
-            $distributorVisit = $this->updateDistributorVisit($visit, $distributorData);
-
-            $leads = $this->validateLeads($this->getLeads($request));
-            $this->updateLeads($distributorVisit, $leads);
-
-            $indicators = $this->validateCommercialIndicators($this->getCommercialIndicators($request));
-            $this->updateCommercialIndicators($distributorVisit, $indicators);
-        }
-
-        $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
-        $this->updateFollowupAgreements($visit, $agreements);
-        $trainingData = $this->validateTrainingData($request);
-        $this->updateTrainingData($visit, $trainingData);
-        $this->validateAttachments($request);
-        $this->updateAttachments($visit, $request);
-
-        return response()->json([
-            'message' => 'Reporte de visita actualizado correctamente',
-            'data'    => $visit
-        ], 200);
-    }
-
-    private function updateClientVisit(VisitReport $visit, array $data)
-    {
-        return $visit->clientVisit()->updateOrCreate(
-            [
-                'visit_report_id' => $visit->id,
-            ],
-            $data
-        );
-    }
-
-    private function uploadLogo(Request $request)
-    {
-        if (!$request->hasFile('logo_file')) {
-            return null;
-        }
-
-        return $request
-            ->file('logo_file')
-            ->store('documents', 'public');
-    }
-
-    private function updateContacts(ClientVisit $clientVisit, array $contacts)
-    {
-        $ids = collect($contacts)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $clientVisit->contacts()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($contacts as $contact) {
-
-            $clientVisit->contacts()->updateOrCreate(
-                [
-                    'id' => $contact['id'] ?? null
-                ],
-                [
-                    'nombre' => $contact['nombre'],
-                    'puesto' => $contact['puesto'],
-                    'email' => $contact['email'] ?? null,
-                    'telefono' => $contact['telefono'],
-                ]
-            );
-        }
-    }
-
-    private function updateFleetInfo(ClientVisit $clientVisit, array $fleet)
-    {
-        $ids = collect($fleet)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $clientVisit->fleetInfo()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($fleet as $item) {
-
-            $clientVisit->fleetInfo()->updateOrCreate(
-                [
-                    'id' => $item['id'] ?? null,
-                ],
-                [
-                    'marca' => $item['marca'],
-                    'modelo' => $item['modelo'],
-                    'capacidad_carga' => $item['capacidad_carga'],
-                    'cantidad' => $item['cantidad'],
-                    'porcentaje_flota' => $item['porcentaje_flota'] ?? null,
-                    'comentarios_aplicacion' => $item['comentarios_aplicacion'] ?? null,
-                ]
-            );
-        }
-    }
-
-    private function updateSalesHistory(ClientVisit $clientVisit, array $history)
-    {
-        $ids = collect($history)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $clientVisit->salesHistory()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($history as $item) {
-
-            $clientVisit->salesHistory()->updateOrCreate(
-                [
-                    'id' => $item['id'] ?? null
-                ],
-                [
-                    'anio' => $item['anio'],
-                    'cantidad' => $item['cantidad'],
-                ]
-            );
-        }
-    }
-
-    private function updateEvents(ClientVisit $clientVisit, Request $request)
-    {
-        $clientVisit->events()->delete();
-
-        $this->storeEvents($clientVisit, $request);
-    }
-
-    private function updateRequirements(ClientVisit $clientVisit, array $data)
-    {
-        $data['demo'] = $data['demo'] === 'si';
-
-        return $clientVisit->requirements()->updateOrCreate(
-            [
-                'client_visit_id' => $clientVisit->id,
-            ],
-            $data
-        );
-    }
-
-    private function updateFollowupAgreements(VisitReport $visit, array $agreements)
-    {
-        $ids = collect($agreements)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $visit->followupAgreements()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($agreements as $agreement) {
-
-            $visit->followupAgreements()->updateOrCreate(
-                [
-                    'id' => $agreement['id'] ?? null,
-                ],
-                [
-                    'acuerdo' => $agreement['acuerdo'],
-                    'responsable' => $agreement['responsable'],
-                    'fecha_compromiso' => $agreement['fecha_compromiso'],
-                ]
-            );
-        }
-    }
-
-    private function updateTrainingData(VisitReport $visit, array $data)
-    {
-        return $visit->trainingData()->updateOrCreate(
-            [
-                'visit_report_id' => $visit->id,
-            ],
-            $data
-        );
-    }
-
-    private function updateAttachments(
-        VisitReport $visit,
-        Request $request
-    ) {
-
-        $existentes = $request->evidencias_existentes ?? [];
-
-        $visit->attachments()
-            ->whereNotIn('id', $existentes)
-            ->get()
-            ->each(function ($attachment) {
-
-                Storage::disk('public')
-                    ->delete($attachment->path);
-
-                $attachment->delete();
-            });
-
-        $this->storeAttachments(
-            $visit,
-            $request
-        );
-    }
-
-    private function updateDistributorVisit(VisitReport $visit, array $data)
-    {
-        return $visit->distributorVisit()->updateOrCreate(
-            [
-                'visit_report_id' => $visit->id,
-            ],
-            $data
-        );
-    }
-
-    private function updateLeads(
-        DistributorVisit $distributorVisit,
-        array $leads
-    ) {
-        $ids = collect($leads)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $distributorVisit->leads()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($leads as $lead) {
-
-            $distributorVisit->leads()->updateOrCreate(
-                [
-                    'id' => $lead['id'] ?? null,
-                ],
-                [
-                    'cliente' => $lead['cliente'],
-                    'modelo_interes' => $lead['modelo_interes'] ?? null,
-                    'porcentaje_avance' => $lead['porcentaje_avance'] ?? null,
-                    'comentarios' => $lead['comentarios'] ?? null,
-                ]
-            );
-        }
-    }
-
-    private function updateCommercialIndicators(
-        DistributorVisit $distributorVisit,
-        array $indicators
-    ) {
-        $ids = collect($indicators)
-            ->pluck('id')
-            ->filter()
-            ->toArray();
-
-        $distributorVisit->commercialIndicators()
-            ->whereNotIn('id', $ids)
-            ->delete();
-
-        foreach ($indicators as $indicator) {
-
-            $distributorVisit->commercialIndicators()->updateOrCreate(
-                [
-                    'id' => $indicator['id'] ?? null,
-                ],
-                [
-                    'modelo' => $indicator['modelo'],
-                    'bp_2025' => $indicator['bp_2025'] ?? null,
-                    'whole_ytd' => $indicator['whole_ytd'] ?? null,
-                    'porcentaje_avance' => $indicator['porcentaje_avance'] ?? null,
-                    'retail_ytd' => $indicator['retail_ytd'] ?? null,
-                    'inventario' => $indicator['inventario'] ?? null,
-                    'back_order' => $indicator['back_order'] ?? null,
-                ]
-            );
-        }
     }
 
     public function validateVisit(Request $request)
@@ -745,7 +498,6 @@ class VisitReportController extends Controller
                 'logo_file.image'              => 'El logo debe ser una imagen.',
                 'logo_file.mimes'              => 'El logo debe ser JPG, JPEG o PNG.',
                 'logo_file.max'                => 'El logo no puede ser mayor a 2MB.',
-
             ]
         );
     }
@@ -769,13 +521,13 @@ class VisitReportController extends Controller
         return Validator::make(
             ['fleet_info' => $fleet],
             [
-                'fleet_info' => 'array',
-                'fleet_info.*.marca'                  => 'required|string|max:255',
-                'fleet_info.*.modelo'                 => 'required|string|max:255',
-                'fleet_info.*.capacidad_carga'        => 'required|numeric|min:0',
-                'fleet_info.*.cantidad'               => 'required|integer|min:1',
-                'fleet_info.*.porcentaje_flota'       => 'nullable|numeric|min:0|max:100',
-                'fleet_info.*.comentarios_aplicacion' => 'nullable|string|max:255',
+                'fleet_info'                           => 'array',
+                'fleet_info.*.marca'                   => 'required|string|max:255',
+                'fleet_info.*.modelo'                  => 'required|string|max:255',
+                'fleet_info.*.capacidad_carga'         => 'required|numeric|min:0',
+                'fleet_info.*.cantidad'                => 'required|integer|min:1',
+                'fleet_info.*.porcentaje_flota'        => 'nullable|numeric|min:0|max:100',
+                'fleet_info.*.comentarios_aplicacion'  => 'nullable|string|max:255',
             ]
         )->validate()['fleet_info'];
     }
@@ -785,9 +537,9 @@ class VisitReportController extends Controller
         return Validator::make(
             ['sales_history' => $history],
             [
-                'sales_history'             => 'array',
-                'sales_history.*.anio'      => 'required|integer|min:2000',
-                'sales_history.*.cantidad'  => 'required|integer|min:0',
+                'sales_history'            => 'array',
+                'sales_history.*.anio'     => 'required|integer|min:2000',
+                'sales_history.*.cantidad' => 'required|integer|min:0',
             ]
         )->validate()['sales_history'];
     }
@@ -831,10 +583,10 @@ class VisitReportController extends Controller
                 'followup_agreements.*.fecha_compromiso' => 'required|date',
             ],
             [
-                'followup_agreements.*.acuerdo.required'            => 'El acuerdo es obligatorio.',
-                'followup_agreements.*.responsable.required'        => 'El responsable es obligatorio.',
-                'followup_agreements.*.fecha_compromiso.required'   => 'La fecha compromiso es obligatoria.',
-                'followup_agreements.*.fecha_compromiso.date'       => 'La fecha compromiso no es válida.',
+                'followup_agreements.*.acuerdo.required'          => 'El acuerdo es obligatorio.',
+                'followup_agreements.*.responsable.required'      => 'El responsable es obligatorio.',
+                'followup_agreements.*.fecha_compromiso.required' => 'La fecha compromiso es obligatoria.',
+                'followup_agreements.*.fecha_compromiso.date'     => 'La fecha compromiso no es válida.',
             ]
         )->validate()['followup_agreements'];
     }
@@ -843,18 +595,18 @@ class VisitReportController extends Controller
     {
         return $request->validate(
             [
-                'tipo'            => 'required|string|max:255',
-                'tema_principal'  => 'required|string|max:255',
-                'num_personas'    => 'required|integer|min:1',
-                'comentarios'     => 'required|string|max:255',
+                'tipo'           => 'required|string|max:255',
+                'tema_principal' => 'required|string|max:255',
+                'num_personas'   => 'required|integer|min:1',
+                'comentarios'    => 'required|string|max:255',
             ],
             [
-                'tipo.required'             => 'El tipo es obligatorio.',
-                'tema_principal.required'   => 'El tema principal es obligatorio.',
-                'num_personas.required'     => 'El número de personas es obligatorio.',
-                'num_personas.integer'      => 'El número de personas debe ser un número entero.',
-                'num_personas.min'          => 'Debe ser al menos 1.',
-                'comentarios.required'      => 'Los comentarios son obligatorios.',
+                'tipo.required'           => 'El tipo es obligatorio.',
+                'tema_principal.required' => 'El tema principal es obligatorio.',
+                'num_personas.required'  => 'El número de personas es obligatorio.',
+                'num_personas.integer'   => 'El número de personas debe ser un número entero.',
+                'num_personas.min'       => 'Debe ser al menos 1.',
+                'comentarios.required'   => 'Los comentarios son obligatorios.',
             ]
         );
     }
@@ -863,33 +615,30 @@ class VisitReportController extends Controller
     {
         return $request->validate(
             [
-                'evidencias'            =>  'nullable|array|max:10',
-                'evidencias.*'          =>  'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
-                'evidencias_existentes' =>  'nullable|array',
+                'evidencias'            => 'nullable|array|max:10',
+                'evidencias.*'          => 'file|mimes:jpg,jpeg,png,pdf,doc,docx|max:10240',
+                'evidencias_existentes' => 'nullable|array',
             ],
             [
-                'evidencias.array'      => 'Las evidencias deben ser un array.',
-                'evidencias.*.file'     => 'Las evidencias deben ser archivos.',
-                'evidencias.*.mimes'    => 'Las evidencias deben ser de tipo JPG, JPEG, PNG, PDF, DOC o DOCX.',
-                'evidencias.*.max'      => 'Las evidencias no pueden superar los 10MB.',
+                'evidencias.array'   => 'Las evidencias deben ser un array.',
+                'evidencias.*.file'  => 'Las evidencias deben ser archivos.',
+                'evidencias.*.mimes' => 'Las evidencias deben ser de tipo JPG, JPEG, PNG, PDF, DOC o DOCX.',
+                'evidencias.*.max'   => 'Las evidencias no pueden superar los 10MB.',
             ]
-        );;
+        );
     }
 
     private function validateDistributorVisit(Request $request)
     {
         $data = $request->validate([
-            'distribuidor'             => 'required|string|max:255',
-            'plaza'                    => 'required|string|max:255',
-            'grupo'                    => 'required|string|max:255',
-            'comentarios_adicionales'  => 'nullable|string',
-            'temas_revisados_otro'     => 'nullable|string|max:255',
+            'distribuidor'            => 'required|string|max:255',
+            'plaza'                   => 'required|string|max:255',
+            'grupo'                   => 'required|string|max:255',
+            'comentarios_adicionales' => 'nullable|string',
+            'temas_revisados_otro'    => 'nullable|string|max:255',
         ]);
 
-        $data['participantes'] = $this->validateParticipantes(
-            $this->getParticipantes($request)
-        );
-
+        $data['participantes'] = $this->validateParticipantes($this->getParticipantes($request));
         $data['temas_revisados'] = $this->getTemasRevisados($request);
 
         return $data;
@@ -900,8 +649,8 @@ class VisitReportController extends Controller
         return Validator::make(
             ['participantes' => $participantes],
             [
-                'participantes'            => 'array',
-                'participantes.*.nombre'   => 'required|string|max:255',
+                'participantes'          => 'array',
+                'participantes.*.nombre' => 'required|string|max:255',
             ]
         )->validate()['participantes'];
     }
