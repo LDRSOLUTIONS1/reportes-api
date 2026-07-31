@@ -7,8 +7,8 @@ use App\Http\Controllers\UsersController;
 use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\VisitReportController;
 
-Route::post('/login', [AuthController::class, 'login']);
 Route::post('/login/{collaborator_number}', [AuthController::class, 'logincollaborator']);
+Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user', [AuthController::class, 'user']);
