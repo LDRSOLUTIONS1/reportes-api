@@ -27,4 +27,10 @@ class FollowupAgreement extends Model
     {
         return $this->belongsTo(VisitReport::class);
     }
+
+    // Scopes
+    public function scopeActivos($query)
+    {
+        return $query->whereIn('estado', [1, 2]);
+    }
 }
