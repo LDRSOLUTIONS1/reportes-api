@@ -43,21 +43,17 @@ class AuthController extends Controller
         $jwt = $request->cookie('token');
 
         if (!$jwt) {
-
             return response()->json([
                 'message' => 'No existe token'
             ], 401);
         }
 
         try {
-
             $decoded = JWT::decode(
                 $jwt,
                 new Key(config('jwt.secret_rh'), 'HS256')
-                //new Key(env('JWT_SECRET'), 'HS256')
             );
         } catch (\Exception $e) {
-
             return response()->json([
                 'message' => 'Token inválido'
             ], 401);
@@ -69,7 +65,6 @@ class AuthController extends Controller
         )->first();
 
         if (!$user) {
-
             $user = User::where(
                 'email',
                 $decoded->correo
@@ -77,27 +72,25 @@ class AuthController extends Controller
         }
 
         if ($user) {
-
             $user->update([
-
                 'external_rh_id' => $decoded->id_colaborador,
+                'collaborator_number' => $decoded->collaborator_number,
+                'role_id' => 1,
                 'name' => $decoded->nombre,
                 'email' => $decoded->correo,
                 'brand' => $decoded->marca,
                 'location_name' => $decoded->nombre_sede
-
             ]);
         } else {
-
             $user = User::create([
-
                 'external_rh_id' => $decoded->id_colaborador,
+                'collaborator_number' => $decoded->collaborator_number,
+                'role_id' => 1,
                 'name' => $decoded->nombre,
                 'email' => $decoded->correo,
                 'brand' => $decoded->marca,
                 'location_name' => $decoded->nombre_sede,
                 'password' => Hash::make(Str::random(40))
-
             ]);
         }
 
