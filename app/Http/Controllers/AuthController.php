@@ -84,7 +84,7 @@ class AuthController extends Controller
         } else {
             $user = User::create([
                 'external_rh_id' => $decoded->id_colaborador,
-                'collaborator_number' => $decoded->collaborator_number,
+                'collaborator_number' => $decoded->id_colaborador,
                 'role_id' => 1,
                 'name' => $decoded->nombre,
                 'email' => $decoded->correo,
