@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function login($collaborator_number)
+    public function logincollaborator($collaborator_number)
     {
         try {
             $user = User::where('collaborator_number', $collaborator_number)->first();
@@ -38,7 +38,7 @@ class AuthController extends Controller
         }
     }
 
-    public function loginn(Request $request)
+    public function login(Request $request)
     {
         $jwt = $request->cookie('token');
 
