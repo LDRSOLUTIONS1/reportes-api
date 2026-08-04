@@ -13,7 +13,11 @@ return new class extends Migration
             $table->foreignId('visit_report_id')->constrained()->cascadeOnDelete();
             $table->text('acuerdo');
             $table->string('responsable')->nullable();
+            $table->string('seguimiento')->nullable();
             $table->date('fecha_compromiso')->nullable();
+            $table->tinyInteger('status')
+                ->default(1)
+                ->comment('0=Vencido, 1=Pendiente, 2=Completado');
 
             $table->tinyInteger('estado')
                 ->default(2)

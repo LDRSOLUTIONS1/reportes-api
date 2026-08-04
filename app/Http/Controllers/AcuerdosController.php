@@ -9,14 +9,19 @@ class AcuerdosController extends Controller
 {
     public function index()
     {
-        $acuerdos = FollowupAgreement::select(
+        $acuerdos = FollowupAgreement::with([
+            'visitReport:id,user_id,visit_type',
+            'visitReport.clientVisit:id,visit_report_id,razon_social',
+            'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
+            'visitReport.user:id,name',
+        ])->select(
             'id',
             'visit_report_id',
             'acuerdo',
             'responsable',
+            'seguimiento',
             'fecha_compromiso',
-            'estado',
-            'created_at',
+            'status',
         )
             ->activos()
             ->orderBy('id', 'desc')
@@ -27,14 +32,19 @@ class AcuerdosController extends Controller
 
     public function show($id)
     {
-        $acuerdo = FollowupAgreement::select(
+        $acuerdo = FollowupAgreement::with([
+            'visitReport:id,user_id,visit_type',
+            'visitReport.clientVisit:id,visit_report_id,razon_social',
+            'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
+            'visitReport.user:id,name',
+        ])->select(
             'id',
             'visit_report_id',
             'acuerdo',
             'responsable',
+            'seguimiento',
             'fecha_compromiso',
-            'estado',
-            'created_at',
+            'status',
         )
             ->where('id', $id)
             ->activos()

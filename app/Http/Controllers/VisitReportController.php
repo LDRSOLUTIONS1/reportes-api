@@ -45,7 +45,20 @@ class VisitReportController extends Controller
 
     public function show($id)
     {
-        $visit = VisitReport::select(
+        $visit = VisitReport::with([
+            'clientVisit:id,visit_report_id,razon_social,ubicaciones,tamanio_flota,giro,rutas,cobertura,tipo_cliente,edad_promedio_flota,logo_path',
+            'clientVisit.contacts:id,client_visit_id,nombre,puesto,email,telefono',
+            'clientVisit.fleetInfo:id,client_visit_id,marca,modelo,capacidad_carga,cantidad,porcentaje_flota,comentarios_aplicacion',
+            'clientVisit.salesHistory:id,client_visit_id,anio,cantidad',
+            'clientVisit.events:id,client_visit_id,nombre_evento,otro_evento,tipo',
+            'clientVisit.requirements:id,client_visit_id,modelo_interes,tipo_carroceria,proyeccion_compra,financiamiento,tiempo_entrega,lugar_entrega,distribuidor,demo,otro',
+            'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
+            'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
+            'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso',
+            'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
+            'attachments:id,visit_report_id,filename,path,tipo',
+        ])->select(
             'id',
             'user_id',
             'visit_type',
@@ -55,14 +68,10 @@ class VisitReportController extends Controller
             'segmento',
             'fecha_inicio',
             'fecha_fin',
-            'status',
-            'estado',
-            'created_at',
         )
             ->where('id', $id)
             ->activos()
             ->firstOrFail();
-
         return response()->json($visit, 200);
     }
 
@@ -78,7 +87,7 @@ class VisitReportController extends Controller
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
-            'followupAgreements:id,visit_report_id,acuerdo,responsable,fecha_compromiso',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -171,6 +180,7 @@ class VisitReportController extends Controller
             'acuerdo'          => $a['acuerdo'],
             'responsable'      => $a['responsable'],
             'fecha_compromiso' => $a['fecha_compromiso'],
+            'seguimiento'      => $a['seguimiento'],
         ]);
 
         $trainingData = $this->validateTrainingData($request);
@@ -580,11 +590,13 @@ class VisitReportController extends Controller
                 'followup_agreements'                    => 'array',
                 'followup_agreements.*.acuerdo'          => 'required|string|max:255',
                 'followup_agreements.*.responsable'      => 'required|string|max:255',
+                'followup_agreements.*.seguimiento'      => 'required|string|max:255',
                 'followup_agreements.*.fecha_compromiso' => 'required|date',
             ],
             [
                 'followup_agreements.*.acuerdo.required'          => 'El acuerdo es obligatorio.',
                 'followup_agreements.*.responsable.required'      => 'El responsable es obligatorio.',
+                'followup_agreements.*.seguimiento.required'      => 'El seguimiento es obligatorio.',
                 'followup_agreements.*.fecha_compromiso.required' => 'La fecha compromiso es obligatoria.',
                 'followup_agreements.*.fecha_compromiso.date'     => 'La fecha compromiso no es válida.',
             ]

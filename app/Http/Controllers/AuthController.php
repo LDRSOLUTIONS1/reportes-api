@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Models\AccessLog;
 use Illuminate\Http\Request;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
@@ -12,7 +13,7 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    public function logincollaborator($collaborator_number)
+    public function logincollaborator(Request $request, $collaborator_number)
     {
         try {
             $user = User::where('collaborator_number', $collaborator_number)->first();
@@ -23,7 +24,16 @@ class AuthController extends Controller
                 ], 404);
             }
 
-            $token = $user->createToken('auth_token')->plainTextToken;
+            $tokenResult = $user->createToken('auth_token');
+            $token = $tokenResult->plainTextToken;
+
+            AccessLog::create([
+                'user_id'    => $user->id,
+                'token_id'   => $tokenResult->accessToken->id,
+                'ip_address' => $request->ip(),
+                'user_agent' => $request->userAgent(),
+                'login_at'   => now(),
+            ]);
 
             return response()->json([
                 'message' => 'Autenticación exitosa',
@@ -94,7 +104,16 @@ class AuthController extends Controller
             ]);
         }
 
-        $token = $user->createToken('reportes')->plainTextToken;
+        $tokenResult = $user->createToken('reportes');
+        $token = $tokenResult->plainTextToken;
+
+        AccessLog::create([
+            'user_id'    => $user->id,
+            'token_id'   => $tokenResult->accessToken->id,
+            'ip_address' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'login_at'   => now(),
+        ]);
 
         return response()->json([
 

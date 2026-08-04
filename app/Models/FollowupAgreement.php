@@ -15,7 +15,9 @@ class FollowupAgreement extends Model
         'visit_report_id',
         'acuerdo',
         'responsable',
+        'seguimiento',
         'fecha_compromiso',
+        'status',
     ];
 
     protected $casts = [
