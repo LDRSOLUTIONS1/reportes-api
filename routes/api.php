@@ -8,6 +8,7 @@ use App\Http\Controllers\ModuleController;
 use App\Http\Controllers\VisitReportController;
 use App\Http\Controllers\AcuerdosController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\FollowupAgreementController;
 
 Route::post('/login/{collaborator_number}', [AuthController::class, 'logincollaborator']);
 Route::post('/login', [AuthController::class, 'login']);
@@ -24,4 +25,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/getEditVisit/{id}', [VisitReportController::class, 'getEditVisit']);
     Route::put('/editVisit/{id}', [VisitReportController::class, 'update']);
+
+    Route::post('/followup-agreements/{id}/complete', [FollowupAgreementController::class, 'complete']);
 });

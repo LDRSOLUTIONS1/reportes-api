@@ -55,7 +55,7 @@ class VisitReportController extends Controller
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
-            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,completado_at,estado',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -87,7 +87,7 @@ class VisitReportController extends Controller
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
-            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,completado_at,estado',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -175,13 +175,14 @@ class VisitReportController extends Controller
             $this->saveDistribuidorDetails($visit, $request);
         }
 
-        $agreements = $this->validateFollowupAgreements($this->getFollowupAgreements($request));
-        $this->syncChildren($visit->followupAgreements(), $agreements, fn($a) => [
-            'acuerdo'          => $a['acuerdo'],
-            'responsable'      => $a['responsable'],
-            'fecha_compromiso' => $a['fecha_compromiso'],
-            'seguimiento'      => $a['seguimiento'],
-        ]);
+        $agreements = $this->validateFollowupAgreements(
+            $this->getFollowupAgreements($request)
+        );
+
+        $this->syncFollowupAgreements(
+            $visit,
+            $agreements
+        );
 
         $trainingData = $this->validateTrainingData($request);
         $visit->trainingData()->updateOrCreate(
@@ -191,6 +192,40 @@ class VisitReportController extends Controller
 
         $this->validateAttachments($request);
         $this->syncAttachments($visit, $request);
+    }
+
+    private function syncFollowupAgreements(
+        VisitReport $visit,
+        array $agreements
+    ) {
+        foreach ($agreements as $agreement) {
+            if (!empty($agreement['id'])) {
+
+                $existing = $visit->followupAgreements()
+                    ->where('id', $agreement['id'])
+                    ->first();
+                if ($existing) {
+
+                    $existing->update([
+                        'acuerdo'          => $agreement['acuerdo'],
+                        'responsable'      => $agreement['responsable'],
+                        'seguimiento'      => $agreement['seguimiento'],
+                        'fecha_compromiso' => $agreement['fecha_compromiso'],
+                    ]);
+                }
+                continue;
+            }
+
+            $visit->followupAgreements()->create([
+                'acuerdo'          => $agreement['acuerdo'],
+                'responsable'      => $agreement['responsable'],
+                'seguimiento'      => $agreement['seguimiento'],
+                'fecha_compromiso' => $agreement['fecha_compromiso'],
+
+                'status'           => 1,
+                'completado_at'    => null,
+            ]);
+        }
     }
 
     private function saveClientDirectoDetails(VisitReport $visit, Request $request)
@@ -571,7 +606,7 @@ class VisitReportController extends Controller
             [
                 'modelo_interes.required'      => 'El modelo de interés es obligatorio.',
                 'tipo_carroceria.required'     => 'El tipo de carrocería es obligatorio.',
-                'proyeccion_compra.required'   => 'La proyección de compra es obligatoria.',
+                'proyeccion_compra.required'   => 'La proyección de compra   es obligatoria.',
                 'financiamiento.required'      => 'El financiamiento es obligatorio.',
                 'tiempo_entrega.required'      => 'El tiempo de entrega es obligatorio.',
                 'lugar_entrega.required'       => 'El lugar de entrega es obligatorio.',
@@ -588,6 +623,7 @@ class VisitReportController extends Controller
             ['followup_agreements' => $agreements],
             [
                 'followup_agreements'                    => 'array',
+                'followup_agreements.*.id'               => 'nullable|integer',
                 'followup_agreements.*.acuerdo'          => 'required|string|max:255',
                 'followup_agreements.*.responsable'      => 'required|string|max:255',
                 'followup_agreements.*.seguimiento'      => 'required|string|max:255',

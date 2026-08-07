@@ -16,9 +16,8 @@ return new class extends Migration
             $table->string('seguimiento')->nullable();
             $table->date('fecha_compromiso')->nullable();
             $table->tinyInteger('status')
-                ->default(1)
                 ->comment('0=Vencido, 1=Pendiente, 2=Completado');
-
+            $table->timestamp('completado_at')->nullable();
             $table->tinyInteger('estado')
                 ->default(2)
                 ->comment('0=Eliminado, 1=Inactivo, 2=Activo');
