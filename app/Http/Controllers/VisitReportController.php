@@ -22,7 +22,11 @@ class VisitReportController extends Controller
 
     public function index()
     {
-        $visits = VisitReport::select(
+        $visits = VisitReport::with([
+            'user:id,name,email',
+            'clientVisit:id,visit_report_id,razon_social',
+            'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
+        ])->select(
             'id',
             'user_id',
             'visit_type',
@@ -46,6 +50,7 @@ class VisitReportController extends Controller
     public function show($id)
     {
         $visit = VisitReport::with([
+            'user:id,name,email',
             'clientVisit:id,visit_report_id,razon_social,ubicaciones,tamanio_flota,giro,rutas,cobertura,tipo_cliente,edad_promedio_flota,logo_path',
             'clientVisit.contacts:id,client_visit_id,nombre,puesto,email,telefono',
             'clientVisit.fleetInfo:id,client_visit_id,marca,modelo,capacidad_carga,cantidad,porcentaje_flota,comentarios_aplicacion',

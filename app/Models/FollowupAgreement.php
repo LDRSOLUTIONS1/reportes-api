@@ -20,6 +20,9 @@ class FollowupAgreement extends Model
         'fecha_compromiso',
         'status',
         'completado_at',
+        'estado',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [

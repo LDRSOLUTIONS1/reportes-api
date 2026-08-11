@@ -15,17 +15,25 @@ class AcuerdosController extends Controller
             'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
             'visitReport.user:id,name',
         ])->select(
-            'id',
-            'visit_report_id',
-            'acuerdo',
-            'responsable',
-            'seguimiento',
-            'fecha_compromiso',
-            'status',
-        )
+                'id',
+                'visit_report_id',
+                'acuerdo',
+                'responsable',
+                'seguimiento',
+                'fecha_compromiso',
+                'status',
+                'completado_at',
+                'estado',
+            )
             ->activos()
             ->orderBy('id', 'desc')
             ->get();
+
+        $acuerdos->each(function ($acuerdo) {
+            if ($acuerdo->esta_vencido) {
+                $acuerdo->status = 0;
+            }
+        });
 
         return response()->json($acuerdos, 200);
     }
@@ -38,18 +46,23 @@ class AcuerdosController extends Controller
             'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
             'visitReport.user:id,name',
         ])->select(
-            'id',
-            'visit_report_id',
-            'acuerdo',
-            'responsable',
-            'seguimiento',
-            'fecha_compromiso',
-            'status',
-        )
+                'id',
+                'visit_report_id',
+                'acuerdo',
+                'responsable',
+                'seguimiento',
+                'fecha_compromiso',
+                'status',
+                'completado_at',
+                'estado',
+            )
             ->where('id', $id)
             ->activos()
             ->firstOrFail();
 
+        if ($acuerdo->esta_vencido) {
+            $acuerdo->status = 0;
+        }
         return response()->json($acuerdo, 200);
     }
 }

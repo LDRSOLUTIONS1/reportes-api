@@ -20,6 +20,17 @@ class FollowupAgreementController extends Controller
             ], 422);
         }
 
+        if ($agreement->status === 3) {
+            return response()->json([
+                'message' => 'Un acuerdo cancelado no puede completarse.'
+            ], 422);
+        }
+
+        if ($agreement->status === 0) {
+            return response()->json([
+                'message' => 'Un acuerdo vencido no puede completarse.'
+            ], 422);
+        }
         $agreement->update([
             'status' => 2,
             'completado_at' => now(),
