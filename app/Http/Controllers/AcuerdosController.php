@@ -22,6 +22,7 @@ class AcuerdosController extends Controller
                 'seguimiento',
                 'fecha_compromiso',
                 'status',
+                'motivo_cancelacion',
                 'completado_at',
                 'estado',
             )
@@ -53,6 +54,7 @@ class AcuerdosController extends Controller
                 'seguimiento',
                 'fecha_compromiso',
                 'status',
+                'motivo_cancelacion',
                 'completado_at',
                 'estado',
             )

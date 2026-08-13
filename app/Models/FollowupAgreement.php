@@ -19,6 +19,7 @@ class FollowupAgreement extends Model
         'seguimiento',
         'fecha_compromiso',
         'status',
+        'motivo_cancelacion',
         'completado_at',
         'estado',
         'created_at',

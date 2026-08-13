@@ -41,4 +41,36 @@ class FollowupAgreementController extends Controller
             'data' => $agreement->fresh()
         ], 200);
     }
+
+    public function cancel(Request $request, $id)
+    {
+        $request->validate([
+            'motivo_cancelacion' => 'required|string|max:255',
+        ]);
+
+        $agreement = FollowupAgreement::where('estado', 2)
+            ->findOrFail($id);
+
+        if ($agreement->status === 2) {
+            return response()->json([
+                'message' => 'Un acuerdo completado no puede cancelarse.'
+            ], 422);
+        }
+
+        if ($agreement->status === 3) {
+            return response()->json([
+                'message' => 'El acuerdo ya está cancelado.'
+            ], 422);
+        }
+
+        $agreement->update([
+            'status' => 3,
+            'motivo_cancelacion' => $request->motivo_cancelacion,
+        ]);
+
+        return response()->json([
+            'message' => 'Acuerdo cancelado correctamente.',
+            'data' => $agreement->fresh()
+        ], 200);
+    }
 }

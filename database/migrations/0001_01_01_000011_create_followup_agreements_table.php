@@ -17,6 +17,7 @@ return new class extends Migration
             $table->date('fecha_compromiso')->nullable();
             $table->tinyInteger('status')
                 ->comment('0=Vencido, 1=Pendiente, 2=Completado, 3=Cancelado');
+            $table->string('motivo_cancelacion')->nullable();
             $table->timestamp('completado_at')->nullable();
             $table->tinyInteger('estado')
                 ->default(2)

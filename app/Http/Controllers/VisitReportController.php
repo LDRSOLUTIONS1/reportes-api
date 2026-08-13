@@ -60,7 +60,7 @@ class VisitReportController extends Controller
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
-            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,completado_at,estado',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,motivo_cancelacion,completado_at,estado',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -92,7 +92,7 @@ class VisitReportController extends Controller
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
-            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,completado_at,estado',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,motivo_cancelacion,completado_at,estado',
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
