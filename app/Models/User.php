@@ -20,7 +20,10 @@ class User extends Authenticatable
         'brand',
         'location_name',
         'password',
+        'remember_token',
         'estado',
+        'created_at',
+        'updated_at'
     ];
 
     protected $hidden = [

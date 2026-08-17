@@ -10,9 +10,14 @@ class UsersController extends Controller
 {
     public function index()
     {
-        $usuarios = User::select(
+        $usuarios = User::with([
+            'role:id,name'
+        ])->select(
             'id',
+            'external_rh_id',
+            'role_id',
             'name',
+            'email',
             'estado',
             'created_at',
         )
@@ -37,9 +42,14 @@ class UsersController extends Controller
 
     public function show($id)
     {
-        $usuario = User::select(
+        $usuario = User::with([
+            'role:id,name'
+        ])->select(
             'id',
+            'external_rh_id',
+            'role_id',
             'name',
+            'email',
             'estado',
             'created_at',
         )
@@ -69,14 +79,22 @@ class UsersController extends Controller
     {
         return $request->validate(
             [
-                'name' => 'required|string|max:255|unique:users,name,' . $id,
-                'estado' => 'nullable|in:0,1,2',
+                'external_rh_id' => 'nullable|numeric',
+                'role_id'        => 'required|exists:roles,id',
+                'name'           => 'required|string|max:255' . $id,
+                'email'          => 'nullable|email|unique:users,email,' . $id,
+                'estado'         => 'nullable|in:0,1,2',
             ],
             [
-                'name.required' => 'El nombre es obligatorio',
-                'name.max'      => 'El nombre no puede tener más de 255 caracteres',
-                'name.unique'   => 'El nombre ya existe',
-                'estado.in'     => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
+                'external_rh_id.nullable' => 'El ID del RH es opcional',
+                'external_rh_id.numeric'  => 'El ID del RH debe ser un número',
+                'role_id.required'        => 'El rol es obligatorio',
+                'role_id.exists'          => 'El rol no existe',
+                'name.required'           => 'El nombre es obligatorio',
+                'name.max'                => 'El nombre no puede tener más de 255 caracteres',
+                'email.email'             => 'El correo no es valido',
+                'email.unique'            => 'El correo ya existe',
+                'estado.in'               => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
             ]
         );
     }
