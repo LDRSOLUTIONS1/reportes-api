@@ -41,6 +41,11 @@ class User extends Authenticatable
         return $this->hasMany(AccessLog::class);
     }
 
+    public function followupAgreementDates()
+    {
+        return $this->hasMany(FollowupAgreementDate::class);
+    }
+
     public function scopeActivos($query)
     {
         return $query->whereIn('estado', [1, 2]);

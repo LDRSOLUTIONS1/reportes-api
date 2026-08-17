@@ -18,5 +18,10 @@ class RoleSeeder extends Seeder
             'name' => 'Administrador',
             'description' => 'Acceso limitado'
         ]);
+
+        Role::create([
+            'name' => 'Consultor',
+            'description' => 'Acceso visualización'
+        ]);
     }
 }

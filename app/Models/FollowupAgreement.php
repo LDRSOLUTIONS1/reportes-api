@@ -39,6 +39,12 @@ class FollowupAgreement extends Model
         return $this->belongsTo(VisitReport::class);
     }
 
+    public function dates()
+    {
+        return $this->hasMany(FollowupAgreementDate::class)
+            ->orderBy('numero_reprogramacion');
+    }
+
     // Scopes
     public function scopeActivos($query)
     {
