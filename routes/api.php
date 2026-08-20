@@ -28,4 +28,5 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/followup-agreements/{id}/complete', [FollowupAgreementController::class, 'complete']);
     Route::post('/followup-agreements/{id}/cancel', [FollowupAgreementController::class, 'cancel']);
+    Route::post('/followup-agreements/{id}/reschedule', [FollowupAgreementController::class, 'reschedule']);
 });

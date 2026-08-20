@@ -42,7 +42,15 @@ class FollowupAgreement extends Model
     public function dates()
     {
         return $this->hasMany(FollowupAgreementDate::class)
-            ->orderBy('numero_reprogramacion');
+            ->orderBy('numero_reprogramacion')
+            ->orderBy('id');
+    }
+
+    public function currentDate()
+    {
+        return $this->hasOne(FollowupAgreementDate::class)
+            ->where('estado', 2)
+            ->latestOfMany('id');
     }
 
     // Scopes
@@ -54,29 +62,46 @@ class FollowupAgreement extends Model
     // Pendientes que YA vencieron, calculado en tiempo real
     public function scopeVencidos($query)
     {
-        return $query->where('status', 1)
+        return $query
+            ->where('status', 1)
             ->where('estado', 2)
-            ->whereNotNull('fecha_compromiso')
-            ->whereDate('fecha_compromiso', '<', Carbon::today());
+            ->whereHas('dates', function ($q) {
+                $q->where('estado', 2)
+                    ->whereDate('fecha_compromiso', '<', Carbon::today());
+            });
     }
 
     // Pendientes que todavía están a tiempo
     public function scopePendientesVigentes($query)
     {
-        return $query->where('status', 1)
+        return $query
+            ->where('status', 1)
             ->where('estado', 2)
-            ->where(function ($q) {
-                $q->whereNull('fecha_compromiso')
-                    ->orWhereDate('fecha_compromiso', '>=', Carbon::today());
+            ->whereHas('dates', function ($q) {
+                $q->where('estado', 2)
+                    ->whereDate('fecha_compromiso', '>=', Carbon::today());
             });
     }
 
     // Accessor: para usar en Blade/API como $acuerdo->esta_vencido
     public function getEstaVencidoAttribute(): bool
     {
-        return $this->status === 1
-            && $this->estado === 2
-            && $this->fecha_compromiso !== null
-            && $this->fecha_compromiso->lt(Carbon::today());
+        if (
+            (int) $this->status !== 1 ||
+            (int) $this->estado !== 2
+        ) {
+            return false;
+        }
+
+        $fechaVigente = $this->dates()
+            ->where('estado', 2)
+            ->latest('id')
+            ->first();
+
+        if (!$fechaVigente || !$fechaVigente->fecha_compromiso) {
+            return false;
+        }
+
+        return $fechaVigente->fecha_compromiso->lt(Carbon::today());
     }
 }

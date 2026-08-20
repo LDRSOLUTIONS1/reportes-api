@@ -61,6 +61,10 @@ class VisitReportController extends Controller
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
             'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,motivo_cancelacion,completado_at,estado',
+            'followupAgreements.dates' => function ($q) {
+                $q->with('user:id,name')->orderBy('numero_reprogramacion')->orderBy('id');
+            },
+
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -93,6 +97,10 @@ class VisitReportController extends Controller
             'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
             'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
             'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,motivo_cancelacion,completado_at,estado',
+            'followupAgreements.dates' => function ($q) {
+                $q->with('user:id,name')->orderBy('numero_reprogramacion')->orderBy('id');
+            },
+
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
         ])->select(
@@ -215,20 +223,26 @@ class VisitReportController extends Controller
                         'acuerdo'          => $agreement['acuerdo'],
                         'responsable'      => $agreement['responsable'],
                         'seguimiento'      => $agreement['seguimiento'],
-                        'fecha_compromiso' => $agreement['fecha_compromiso'],
                     ]);
                 }
                 continue;
             }
 
-            $visit->followupAgreements()->create([
+            $newAgreement = $visit->followupAgreements()->create([
                 'acuerdo'          => $agreement['acuerdo'],
                 'responsable'      => $agreement['responsable'],
                 'seguimiento'      => $agreement['seguimiento'],
                 'fecha_compromiso' => $agreement['fecha_compromiso'],
-
                 'status'           => 1,
                 'completado_at'    => null,
+            ]);
+
+            $newAgreement->dates()->create([
+                'fecha_compromiso'      => $agreement['fecha_compromiso'],
+                'motivo_reprogramacion' => null,
+                'user_id'               => Auth::id(),
+                'numero_reprogramacion' => 0,
+                'estado'                => 2,
             ]);
         }
     }
