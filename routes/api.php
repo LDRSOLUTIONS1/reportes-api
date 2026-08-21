@@ -25,6 +25,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::get('/getEditVisit/{id}', [VisitReportController::class, 'getEditVisit']);
     Route::put('/editVisit/{id}', [VisitReportController::class, 'update']);
+    Route::get('/visitas/{id}/pdf', [VisitReportController::class, 'pdf']);
 
     Route::post('/followup-agreements/{id}/complete', [FollowupAgreementController::class, 'complete']);
     Route::post('/followup-agreements/{id}/cancel', [FollowupAgreementController::class, 'cancel']);

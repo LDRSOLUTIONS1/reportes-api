@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class VisitReportController extends Controller
 {
@@ -751,5 +752,52 @@ class VisitReportController extends Controller
                 'commercial_indicators.*.back_order'        => 'nullable|integer|min:0',
             ]
         )->validate()['commercial_indicators'];
+    }
+
+    public function pdf($id)
+    {
+        $visit = VisitReport::with([
+            'user:id,name,email',
+            'clientVisit:id,visit_report_id,razon_social,ubicaciones,tamanio_flota,giro,rutas,cobertura,tipo_cliente,edad_promedio_flota,logo_path',
+            'clientVisit.contacts:id,client_visit_id,nombre,puesto,email,telefono',
+            'clientVisit.fleetInfo:id,client_visit_id,marca,modelo,capacidad_carga,cantidad,porcentaje_flota,comentarios_aplicacion',
+            'clientVisit.salesHistory:id,client_visit_id,anio,cantidad',
+            'clientVisit.events:id,client_visit_id,nombre_evento,otro_evento,tipo',
+            'clientVisit.requirements:id,client_visit_id,modelo_interes,tipo_carroceria,proyeccion_compra,financiamiento,tiempo_entrega,lugar_entrega,distribuidor,demo,otro',
+            'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo,temas_revisados,participantes,comentarios_adicionales',
+            'distributorVisit.leads:id,distributor_visit_id,cliente,modelo_interes,porcentaje_avance,comentarios',
+            'distributorVisit.commercialIndicators:id,distributor_visit_id,modelo,bp_2025,whole_ytd,porcentaje_avance,retail_ytd,inventario,back_order',
+            'followupAgreements:id,visit_report_id,acuerdo,responsable,seguimiento,fecha_compromiso,status,motivo_cancelacion,completado_at,estado',
+            'followupAgreements.dates' => function ($q) {
+                $q->with('user:id,name')
+                    ->orderBy('numero_reprogramacion')
+                    ->orderBy('id');
+            },
+            'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
+            'attachments:id,visit_report_id,filename,path,tipo',
+        ])
+            ->select(
+                'id',
+                'user_id',
+                'visit_type',
+                'tipo_visita',
+                'objetivo',
+                'logros_estrategia',
+                'segmento',
+                'fecha_inicio',
+                'fecha_fin',
+            )
+            ->where('id', $id)
+            ->activos()
+            ->firstOrFail();
+
+        $pdf = Pdf::loadView('pdf.visita', [
+            'visit' => $visit,
+            'esClienteDirecto' => $visit->visit_type === 'cliente_directo',
+        ]);
+
+        $pdf->setPaper('letter', 'portrait');
+
+        return $pdf->download("visita-{$visit->id}.pdf");
     }
 }

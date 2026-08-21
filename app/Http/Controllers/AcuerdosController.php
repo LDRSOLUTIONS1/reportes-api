@@ -14,18 +14,22 @@ class AcuerdosController extends Controller
             'visitReport.clientVisit:id,visit_report_id,razon_social',
             'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
             'visitReport.user:id,name',
+            'dates' => function ($q) {
+                $q->with('user:id,name')->orderBy('numero_reprogramacion')->orderBy('id');
+            },
+
         ])->select(
-                'id',
-                'visit_report_id',
-                'acuerdo',
-                'responsable',
-                'seguimiento',
-                'fecha_compromiso',
-                'status',
-                'motivo_cancelacion',
-                'completado_at',
-                'estado',
-            )
+            'id',
+            'visit_report_id',
+            'acuerdo',
+            'responsable',
+            'seguimiento',
+            'fecha_compromiso',
+            'status',
+            'motivo_cancelacion',
+            'completado_at',
+            'estado',
+        )
             ->activos()
             ->orderBy('id', 'desc')
             ->get();
@@ -46,18 +50,21 @@ class AcuerdosController extends Controller
             'visitReport.clientVisit:id,visit_report_id,razon_social',
             'visitReport.distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
             'visitReport.user:id,name',
+            'dates' => function ($q) {
+                $q->with('user:id,name')->orderBy('numero_reprogramacion')->orderBy('id');
+            },
         ])->select(
-                'id',
-                'visit_report_id',
-                'acuerdo',
-                'responsable',
-                'seguimiento',
-                'fecha_compromiso',
-                'status',
-                'motivo_cancelacion',
-                'completado_at',
-                'estado',
-            )
+            'id',
+            'visit_report_id',
+            'acuerdo',
+            'responsable',
+            'seguimiento',
+            'fecha_compromiso',
+            'status',
+            'motivo_cancelacion',
+            'completado_at',
+            'estado',
+        )
             ->where('id', $id)
             ->activos()
             ->firstOrFail();
