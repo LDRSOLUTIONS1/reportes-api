@@ -13,6 +13,7 @@ class User extends Authenticatable
 
     protected $fillable = [
         'role_id',
+        'manager_id',
         'collaborator_number',
         'external_rh_id',
         'name',
@@ -34,6 +35,18 @@ class User extends Authenticatable
     public function role()
     {
         return $this->belongsTo(Role::class);
+    }
+
+    //Usuario responsable de este usuario.
+    public function manager()
+    {
+        return $this->belongsTo(User::class, 'manager_id');
+    }
+
+    //Usuarios que están a cargo de este usuario.
+    public function subordinates()
+    {
+        return $this->hasMany(User::class, 'manager_id');
     }
 
     public function accessLogs()

@@ -99,7 +99,7 @@
             top: 1px;
         }
 
-        /* ===== INFO GRID (basado en tablas, seguro para saltos de página en dompdf) ===== */
+        /* ===== INFO GRID 2 COLUMNAS (Información del cliente, etc.) ===== */
         .grid-table {
             width: 100%;
         }
@@ -116,6 +116,25 @@
 
         .grid-table td.pad-left {
             padding-left: 4%;
+        }
+
+        /* ===== INFO GRID 3 COLUMNAS (replica Grid item xs=12 md=4 de MUI) ===== */
+        .grid-table-3 {
+            width: 100%;
+        }
+
+        .grid-table-3 td {
+            vertical-align: top;
+            width: 33.33%;
+            padding: 0 4% 9px 0;
+        }
+
+        .grid-table-3 td:last-child {
+            padding-right: 0;
+        }
+
+        .info-block {
+            margin-top: 9px;
         }
 
         .info-label {
@@ -136,7 +155,7 @@
             color: #A0AEC0;
         }
 
-        /* ===== INNER CARDS (contactos, flota, etc) ===== */
+        /* ===== INNER CARDS (contactos, flota, eventos, ventas, leads, participantes) ===== */
         .inner-card-table {
             width: 100%;
             margin-bottom: 8px;
@@ -154,6 +173,22 @@
 
         .inner-card-table td.pad-left {
             padding-left: 3%;
+        }
+
+        /* variante de 3 columnas para tarjetas (Flota, Historial de ventas) */
+        .card-table-3 {
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .card-table-3 td {
+            vertical-align: top;
+            width: 33.33%;
+            padding: 0 3% 10px 0;
+        }
+
+        .card-table-3 td:last-child {
+            padding-right: 0;
         }
 
         .inner-card {
@@ -175,7 +210,7 @@
             margin-top: 1px;
         }
 
-        /* ===== TABLES DE DATOS ===== */
+        /* ===== TABLES DE DATOS (Indicadores comerciales) ===== */
         .data-table {
             width: 100%;
             border-collapse: collapse;
@@ -331,6 +366,31 @@
             top: -1px;
         }
 
+        /* ===== CHIPS DE TEMAS ===== */
+        .tema-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            margin: 0 5px 5px 0;
+            border-radius: 20px;
+            font-size: 8.5px;
+            font-weight: bold;
+        }
+
+        /* ===== PROGRESS BAR (leads) ===== */
+        .progress-track {
+            height: 6px;
+            border-radius: 20px;
+            background: #E2E8F0;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 20px;
+            background: #7A5CDB;
+        }
+
         /* ===== EVIDENCIAS (tabla de 3 columnas, segura para dompdf) ===== */
         .evidencia-table {
             width: 100%;
@@ -395,6 +455,68 @@
 
 <body>
 
+    {{--
+        Catálogos de traducción id -> nombre amigable.
+        Deben reflejar exactamente los mismos catálogos usados en el
+        detalle de React (DetalleVisitas.jsx) para que el PDF muestre
+        la misma información que la vista web.
+    --}}
+    @php
+        $TIPOS_VISITA = [
+            'presentacion_comercial' => 'Presentación comercial',
+            'capacitacion_operativa' => 'Capacitación operativa',
+            'capacitacion_producto' => 'Capacitación producto',
+            'acompanamiento_comercial' => 'Acompañamiento comercial',
+            'operativa' => 'Operativa',
+            'capacitacion' => 'Capacitación',
+            'otro' => 'Otro',
+        ];
+
+        $EVENTOS = [
+            'china' => 'China',
+            'torneo_golf' => 'Torneo Golf',
+            'f1' => 'F1',
+            'expo_transporte' => 'Expo Transporte',
+            'super_copa' => 'Super Copa',
+            'cuernos_chuecos' => 'Cuernos Chuecos',
+        ];
+
+        $FINANCIAMIENTOS = [
+            'credito_casa' => 'Crédito Casa',
+            'arrendamiento' => 'Arrendamiento',
+            'contado' => 'Contado',
+            'otro' => 'Otro',
+        ];
+
+        $TIPOS_CAPACITACION = [
+            'tecnica' => 'Tecnica',
+            'comercial' => 'Comercial',
+            'operativa' => 'Operativa',
+        ];
+
+        $TEMAS = [
+            'back_order' => 'Back Order',
+            'bonos' => 'Bonos',
+            'estado_cuenta' => 'Estado de cuenta',
+            'estrategia_marketing' => 'Estrategía Marketing',
+            'facturacion' => 'Facturación',
+            'fuerza_ventas' => 'Fuerza de ventas',
+            'inventario_facturado' => 'Inventario Facturado',
+            'inventario_fisico' => 'Inventario Fisico',
+            'notas_credito' => 'Notas de crédito',
+            'pedidos_nuevos' => 'Pedidos nuevos',
+            'plan_comercial' => 'Plan Comercial',
+            'plan_piso' => 'Plan Piso',
+            'posventa' => 'Posventa',
+            'programacion_citas' => 'Programación de citas',
+            'prospeccion_leads' => 'Prospección/ Leads',
+            'retail' => 'Retail',
+        ];
+
+        $temasRevisados = collect($visit->distributorVisit->temas_revisados ?? []);
+        $participantes = collect($visit->distributorVisit->participantes ?? []);
+    @endphp
+
     {{-- HEADER --}}
     <div class="header">
         <table class="header-table">
@@ -421,46 +543,64 @@
 
 
     {{-- INFORMACIÓN GENERAL --}}
+    {{-- Orden exacto de DetalleVisitas.jsx: Tipo de visita, Fecha de inicio,
+         Fecha de término, Segmento, Objetivo (ancho completo), Logros/Estrategia (ancho completo) --}}
     <div class="section">
         <div class="section-title">
             <span class="bar" style="background:#1C2530;"></span>Información general
         </div>
 
-        <table class="grid-table">
+        <table class="grid-table-3">
             <tr>
-                <td class="pad-right">
+                <td>
+                    <div class="info-label">Tipo de visita</div>
+                    <div class="info-value">{{ $TIPOS_VISITA[$visit->tipo_visita] ?? $visit->tipo_visita }}</div>
+                </td>
+                <td>
+                    <div class="info-label">Fecha de inicio</div>
+                    <div class="info-value">
+                        {{ $visit->fecha_inicio ? \Carbon\Carbon::parse($visit->fecha_inicio)->format('d/m/Y') : 'Sin dato' }}
+                    </div>
+                </td>
+                <td>
+                    <div class="info-label">Fecha de término</div>
+                    <div class="info-value">
+                        {{ $visit->fecha_fin ? \Carbon\Carbon::parse($visit->fecha_fin)->format('d/m/Y') : 'Sin dato' }}
+                    </div>
+                </td>
+            </tr>
+            <tr>
+                <td>
                     <div class="info-label">Segmento</div>
                     <div class="info-value {{ $visit->segmento ? '' : 'empty' }}">
                         {{ $visit->segmento ?? 'Sin dato' }}
                     </div>
                 </td>
-                <td class="pad-left">
-                    <div class="info-label">Tipo de visita</div>
-                    <div class="info-value">{{ $visit->tipo_visita }}</div>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2">
-                    <div class="info-label">Objetivo</div>
-                    <div class="info-value {{ $visit->objetivo ? '' : 'empty' }}">
-                        {{ $visit->objetivo ?? 'Sin dato' }}
-                    </div>
-                </td>
-            </tr>
-            <tr>
-                <td colspan="2">
-                    <div class="info-label">Logros / Estrategia</div>
-                    <div class="info-value {{ $visit->logros_estrategia ? '' : 'empty' }}">
-                        {{ $visit->logros_estrategia ?? 'Sin dato' }}
-                    </div>
-                </td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
             </tr>
         </table>
+
+        <div class="info-block">
+            <div class="info-label">Objetivo</div>
+            <div class="info-value {{ $visit->objetivo ? '' : 'empty' }}">
+                {{ $visit->objetivo ?? 'Sin dato' }}
+            </div>
+        </div>
+
+        <div class="info-block">
+            <div class="info-label">Logros / Estrategia</div>
+            <div class="info-value {{ $visit->logros_estrategia ? '' : 'empty' }}">
+                {{ $visit->logros_estrategia ?? 'Sin dato' }}
+            </div>
+        </div>
     </div>
 
 
-    {{-- CLIENTE DIRECTO --}}
-    @if ($visit->clientVisit)
+    {{-- ============================================================ --}}
+    {{-- CLIENTE DIRECTO (solo si visit_type === 'cliente_directo')     --}}
+    {{-- ============================================================ --}}
+    @if ($esClienteDirecto && $visit->clientVisit)
 
         <div class="section">
             <div class="section-title">
@@ -541,61 +681,114 @@
             </div>
         @endif
 
-        {{-- FLOTA --}}
+        {{-- INFORMACIÓN DE FLOTA (tarjetas, igual que InnerCard en React) --}}
         @if ($visit->clientVisit->fleetInfo && $visit->clientVisit->fleetInfo->count())
             <div class="section">
                 <div class="section-title">
                     <span class="bar" style="background:#2E6BE0;"></span>Información de flota
                 </div>
 
-                <table class="data-table">
-                    <thead>
+                @foreach ($visit->clientVisit->fleetInfo->chunk(3) as $grupo)
+                    <table class="card-table-3">
                         <tr>
-                            <th>Marca</th>
-                            <th>Modelo</th>
-                            <th>Capacidad</th>
-                            <th>Cantidad</th>
-                            <th>% flota</th>
+                            @foreach ($grupo as $flota)
+                                <td>
+                                    <div class="inner-card">
+                                        <div class="inner-card-title">{{ $flota->marca }}</div>
+                                        <div class="inner-card-sub">Modelo: {{ $flota->modelo }}</div>
+                                        <div class="acuerdo-divider">&nbsp;</div>
+                                        <div class="info-value">Capacidad de carga: {{ $flota->capacidad_carga }}</div>
+                                        <div class="info-value">Cantidad: {{ $flota->cantidad }}</div>
+                                        <div class="info-value">% de flota: {{ $flota->porcentaje_flota }}%</div>
+                                        @if ($flota->comentarios_aplicacion)
+                                            <div class="info-value" style="margin-top:4px;color:#64748B;">
+                                                {{ $flota->comentarios_aplicacion }}</div>
+                                        @endif
+                                    </div>
+                                </td>
+                            @endforeach
+                            @for ($i = $grupo->count(); $i < 3; $i++)
+                                <td>&nbsp;</td>
+                            @endfor
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($visit->clientVisit->fleetInfo as $flota)
-                            <tr>
-                                <td>{{ $flota->marca }}</td>
-                                <td>{{ $flota->modelo }}</td>
-                                <td>{{ $flota->capacidad_carga }}</td>
-                                <td>{{ $flota->cantidad }}</td>
-                                <td>{{ $flota->porcentaje_flota }}%</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    </table>
+                @endforeach
             </div>
         @endif
 
-        {{-- HISTORIAL DE VENTAS --}}
+        {{-- HISTORIAL DE VENTAS (tarjetas centradas, igual que React) --}}
         @if ($visit->clientVisit->salesHistory && $visit->clientVisit->salesHistory->count())
             <div class="section">
                 <div class="section-title">
                     <span class="bar" style="background:#2E6BE0;"></span>Historial de ventas
                 </div>
 
-                <table class="data-table">
-                    <thead>
+                @foreach ($visit->clientVisit->salesHistory->chunk(3) as $grupo)
+                    <table class="card-table-3">
                         <tr>
-                            <th>Año</th>
-                            <th>Cantidad</th>
+                            @foreach ($grupo as $venta)
+                                <td>
+                                    <div class="inner-card" style="text-align:center;">
+                                        <div style="font-size:16px; font-weight:800; color:#2E6BE0; line-height:1;">
+                                            {{ $venta->anio }}
+                                        </div>
+                                        <div class="info-value" style="margin-top:5px; color:#64748B;">
+                                            Cantidad: {{ $venta->cantidad }}
+                                        </div>
+                                    </div>
+                                </td>
+                            @endforeach
+                            @for ($i = $grupo->count(); $i < 3; $i++)
+                                <td>&nbsp;</td>
+                            @endfor
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($visit->clientVisit->salesHistory as $venta)
-                            <tr>
-                                <td>{{ $venta->anio }}</td>
-                                <td>{{ $venta->cantidad }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    </table>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- EVENTOS --}}
+        @if ($visit->clientVisit->events && $visit->clientVisit->events->count())
+            <div class="section">
+                <div class="section-title">
+                    <span class="bar" style="background:#2E6BE0;"></span>Eventos
+                </div>
+
+                @foreach ($visit->clientVisit->events->chunk(2) as $pair)
+                    <table class="inner-card-table">
+                        <tr>
+                            @foreach ($pair as $evento)
+                                <td class="{{ $loop->first ? 'pad-right' : 'pad-left' }}">
+                                    <div class="inner-card">
+                                        <table style="width:100%;">
+                                            <tr>
+                                                <td>
+                                                    <div class="inner-card-title">
+                                                        {{ $EVENTOS[$evento->nombre_evento] ?? $evento->nombre_evento }}
+                                                    </div>
+                                                </td>
+                                                <td style="text-align:right; width:70px;">
+                                                    <span
+                                                        class="chip {{ $evento->tipo === 'asistio' ? 'chip-success' : 'chip-warning' }}">
+                                                        {{ $evento->tipo === 'asistio' ? 'Asistió' : $evento->tipo }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                        @if ($evento->otro_evento)
+                                            <div class="info-value" style="margin-top:6px;">
+                                                Otro: {{ $evento->otro_evento }}
+                                            </div>
+                                        @endif
+                                    </div>
+                                </td>
+                            @endforeach
+                            @if ($pair->count() == 1)
+                                <td class="pad-left">&nbsp;</td>
+                            @endif
+                        </tr>
+                    </table>
+                @endforeach
             </div>
         @endif
 
@@ -606,45 +799,58 @@
                     <span class="bar" style="background:#2E6BE0;"></span>Requerimientos
                 </div>
 
-                <table class="grid-table">
+                <table class="grid-table-3">
                     <tr>
-                        <td class="pad-right">
+                        <td>
                             <div class="info-label">Modelo de interés</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->modelo_interes ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->modelo_interes ?? 'Sin dato' }}</div>
                         </td>
-                        <td class="pad-left">
+                        <td>
                             <div class="info-label">Tipo de carrocería</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->tipo_carroceria ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->tipo_carroceria ?? 'Sin dato' }}</div>
                         </td>
-                    </tr>
-                    <tr>
-                        <td class="pad-right">
+                        <td>
                             <div class="info-label">Proyección de compra</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->proyeccion_compra ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->proyeccion_compra ?? 'Sin dato' }}</div>
                         </td>
-                        <td class="pad-left">
+                    </tr>
+                    <tr>
+                        <td>
                             <div class="info-label">Financiamiento</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->financiamiento ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $FINANCIAMIENTOS[$visit->clientVisit->requirements->financiamiento] ?? ($visit->clientVisit->requirements->financiamiento ?? 'Sin dato') }}
+                            </div>
                         </td>
-                    </tr>
-                    <tr>
-                        <td class="pad-right">
+                        <td>
                             <div class="info-label">Tiempo de entrega</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->tiempo_entrega ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->tiempo_entrega ?? 'Sin dato' }}</div>
                         </td>
-                        <td class="pad-left">
+                        <td>
                             <div class="info-label">Lugar de entrega</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->lugar_entrega ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->lugar_entrega ?? 'Sin dato' }}</div>
                         </td>
                     </tr>
                     <tr>
-                        <td class="pad-right">
+                        <td>
                             <div class="info-label">Distribuidor</div>
-                            <div class="info-value">{{ $visit->clientVisit->requirements->distribuidor ?? 'Sin dato' }}</div>
+                            <div class="info-value">
+                                {{ $visit->clientVisit->requirements->distribuidor ?? 'Sin dato' }}</div>
                         </td>
-                        <td class="pad-left">
+                        <td>
                             <div class="info-label">Demo</div>
                             <div class="info-value">{{ $visit->clientVisit->requirements->demo ? 'Sí' : 'No' }}</div>
+                        </td>
+                        <td>
+                            {{-- "Otro" siempre visible, igual que en React (no es condicional) --}}
+                            <div class="info-label">Otro</div>
+                            <div
+                                class="info-value {{ $visit->clientVisit->requirements->otro ? '' : 'empty' }}">
+                                {{ $visit->clientVisit->requirements->otro ?? 'Sin dato' }}</div>
                         </td>
                     </tr>
                 </table>
@@ -653,125 +859,195 @@
 
     @endif
 
-
-    {{-- DISTRIBUIDOR --}}
-    @if ($visit->distributorVisit)
+    {{-- ============================================================ --}}
+    {{-- DISTRIBUIDOR (solo si visit_type !== 'cliente_directo')        --}}
+    {{-- ============================================================ --}}
+    @if (!$esClienteDirecto && $visit->distributorVisit)
 
         <div class="section">
             <div class="section-title">
                 <span class="bar" style="background:#7A5CDB;"></span>Información del distribuidor
             </div>
 
-            <table class="grid-table">
+            <table class="grid-table-3">
                 <tr>
-                    <td class="pad-right">
+                    <td>
                         <div class="info-label">Distribuidor</div>
                         <div class="info-value">{{ $visit->distributorVisit->distribuidor }}</div>
                     </td>
-                    <td class="pad-left">
+                    <td>
                         <div class="info-label">Plaza</div>
                         <div class="info-value">{{ $visit->distributorVisit->plaza }}</div>
                     </td>
-                </tr>
-                <tr>
-                    <td class="pad-right">
+                    <td>
                         <div class="info-label">Grupo</div>
                         <div class="info-value">{{ $visit->distributorVisit->grupo }}</div>
                     </td>
-                    <td class="pad-left">&nbsp;</td>
                 </tr>
             </table>
-
-            @if ($visit->distributorVisit->comentarios_adicionales)
-                <div class="motivo-box" style="margin-top:4px;">
-                    <div class="motivo-label">Comentarios adicionales</div>
-                    <div class="motivo-text">{{ $visit->distributorVisit->comentarios_adicionales }}</div>
-                </div>
-            @endif
         </div>
 
-        {{-- LEADS --}}
-        @if ($visit->distributorVisit->leads && $visit->distributorVisit->leads->count())
+        {{-- TEMAS REVISADOS --}}
+        @if ($temasRevisados->count())
             <div class="section">
                 <div class="section-title">
-                    <span class="bar" style="background:#7A5CDB;"></span>Leads
+                    <span class="bar" style="background:#7A5CDB;"></span>Temas revisados
                 </div>
 
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Modelo de interés</th>
-                            <th>Avance</th>
-                            <th>Comentarios</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($visit->distributorVisit->leads as $lead)
-                            <tr>
-                                <td>{{ $lead->cliente }}</td>
-                                <td>{{ $lead->modelo_interes }}</td>
-                                <td>{{ $lead->porcentaje_avance }}%</td>
-                                <td>{{ $lead->comentarios ?? '—' }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                <div>
+                    @foreach ($temasRevisados as $tema)
+                        <span class="tema-chip"
+                            style="background:#7A5CDB14; color:#7A5CDB; border:1px solid #7A5CDB33;">
+                            {{ $TEMAS[$tema] ?? $tema }}
+                        </span>
+                    @endforeach
+                </div>
             </div>
         @endif
 
-        {{-- INDICADORES COMERCIALES --}}
-        @if ($visit->distributorVisit->commercialIndicators && $visit->distributorVisit->commercialIndicators->count())
+        {{-- PARTICIPANTES --}}
+        @if ($participantes->count())
             <div class="section">
                 <div class="section-title">
-                    <span class="bar" style="background:#7A5CDB;"></span>Indicadores comerciales
+                    <span class="bar" style="background:#7A5CDB;"></span>Participantes
                 </div>
 
-                <table class="data-table">
-                    <thead>
+                @foreach ($participantes->chunk(2) as $pair)
+                    <table class="inner-card-table">
                         <tr>
-                            <th>Modelo</th>
-                            <th>BP 2025</th>
-                            <th>Whole YTD</th>
-                            <th>Retail YTD</th>
-                            <th>Avance</th>
-                            <th>Inventario</th>
-                            <th>Back order</th>
+                            @foreach ($pair as $participante)
+                                <td class="{{ $loop->first ? 'pad-right' : 'pad-left' }}">
+                                    <div class="inner-card">
+                                        <div class="inner-card-title">
+                                            {{ is_array($participante) ? $participante['nombre'] ?? '' : $participante->nombre }}
+                                        </div>
+                                    </div>
+                                </td>
+                            @endforeach
+                            @if ($pair->count() == 1)
+                                <td class="pad-left">&nbsp;</td>
+                            @endif
                         </tr>
-                    </thead>
-                    <tbody>
-                        @foreach ($visit->distributorVisit->commercialIndicators as $indicador)
-                            <tr>
-                                <td>{{ $indicador->modelo }}</td>
-                                <td>{{ $indicador->bp_2025 }}</td>
-                                <td>{{ $indicador->whole_ytd }}</td>
-                                <td>{{ $indicador->retail_ytd }}</td>
-                                <td>{{ $indicador->porcentaje_avance }}%</td>
-                                <td>{{ $indicador->inventario }}</td>
-                                <td>{{ $indicador->back_order }}</td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                    </table>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- LEADS / DATOS DE ACOMPAÑAMIENTO (tarjetas con barra de avance, igual que React) --}}
+        @if ($visit->distributorVisit->leads && $visit->distributorVisit->leads->count())
+            <div class="section">
+                <div class="section-title">
+                    <span class="bar" style="background:#7A5CDB;"></span>Datos de Acompañamiento
+                </div>
+
+                @foreach ($visit->distributorVisit->leads->chunk(2) as $pair)
+                    <table class="inner-card-table">
+                        <tr>
+                            @foreach ($pair as $lead)
+                                @php
+                                    $avance = min(max($lead->porcentaje_avance ?? 0, 0), 100);
+                                @endphp
+                                <td class="{{ $loop->first ? 'pad-right' : 'pad-left' }}">
+                                    <div class="inner-card">
+                                        <div class="inner-card-title">{{ $lead->cliente }}</div>
+                                        <div class="inner-card-sub">
+                                            Modelo de interés: {{ $lead->modelo_interes }}</div>
+
+                                        <div style="margin-top:8px;">
+                                            <table style="width:100%;">
+                                                <tr>
+                                                    <td style="font-size:8px; color:#64748B;">Avance</td>
+                                                    <td style="text-align:right; font-size:8px; font-weight:bold;">
+                                                        {{ $lead->porcentaje_avance }}%</td>
+                                                </tr>
+                                            </table>
+                                            <div class="progress-track">
+                                                <div class="progress-fill" style="width:{{ $avance }}%;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        @if ($lead->comentarios)
+                                            <div class="info-value" style="margin-top:8px; color:#64748B;">
+                                                {{ $lead->comentarios }}</div>
+                                        @endif
+                                    </div>
+                                </td>
+                            @endforeach
+                            @if ($pair->count() == 1)
+                                <td class="pad-left">&nbsp;</td>
+                            @endif
+                        </tr>
+                    </table>
+                @endforeach
+            </div>
+        @endif
+
+        {{-- COMENTARIOS ADICIONALES (justo después de Leads, igual que en React) --}}
+        @if ($visit->distributorVisit->comentarios_adicionales)
+            <div class="section">
+                <div class="section-title">
+                    <span class="bar" style="background:#7A5CDB;"></span>Comentarios adicionales
+                </div>
+                <div class="info-value">{{ $visit->distributorVisit->comentarios_adicionales }}</div>
             </div>
         @endif
 
     @endif
 
+    {{-- ============================================================ --}}
+    {{-- DATOS DE CAPACITACIÓN (independiente del tipo de visita)       --}}
+    {{-- ============================================================ --}}
+    @if ($visit->trainingData)
+        <div class="section">
+            <div class="section-title">
+                <span class="bar" style="background:#1E9E8B;"></span>Datos de Capacitación
+            </div>
 
-    {{-- ACUERDOS --}}
+            <table class="grid-table-3">
+                <tr>
+                    <td>
+                        <div class="info-label">Tipo</div>
+                        <div class="info-value">
+                            {{ $TIPOS_CAPACITACION[$visit->trainingData->tipo] ?? $visit->trainingData->tipo }}
+                        </div>
+                    </td>
+                    <td>
+                        <div class="info-label">Tema principal</div>
+                        <div class="info-value">{{ $visit->trainingData->tema_principal }}</div>
+                    </td>
+                    <td>
+                        <div class="info-label">Número de personas</div>
+                        <div class="info-value">{{ $visit->trainingData->num_personas }}</div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="info-block">
+                <div class="info-label">Comentarios</div>
+                <div class="info-value {{ $visit->trainingData->comentarios ? '' : 'empty' }}">
+                    {{ $visit->trainingData->comentarios ?? 'Sin dato' }}
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================================ --}}
+    {{-- ACUERDOS / ACTIVIDADES (independiente del tipo de visita)      --}}
+    {{-- ============================================================ --}}
     @if ($visit->followupAgreements->count())
 
         <div class="section">
             <div class="section-title">
-                <span class="bar" style="background:#D98C2B;"></span>Acuerdos y seguimiento
+                <span class="bar" style="background:#D98C2B;"></span>Acuerdos / Actividades
             </div>
 
             @foreach ($visit->followupAgreements as $agreement)
                 @php
                     $dates = $agreement->dates;
-                    $original = $dates->firstWhere('numero_reprogramacion', 0)?->fecha_compromiso
-                        ?? $agreement->fecha_compromiso;
+                    $original =
+                        $dates->firstWhere('numero_reprogramacion', 0)?->fecha_compromiso ??
+                        $agreement->fecha_compromiso;
                     $vigente = $dates->firstWhere('estado', 2) ?? $dates->last();
                     $fechaVigente = $vigente?->fecha_compromiso ?? $agreement->fecha_compromiso;
                     $reprogramaciones = $dates->count() > 1 ? $dates->count() - 1 : 0;
@@ -817,11 +1093,14 @@
                         <tr>
                             <td class="pad-right">
                                 <div class="info-label">Fecha compromiso original</div>
-                                <div class="info-value">{{ \Carbon\Carbon::parse($original)->format('d/m/Y') }}</div>
+                                <div class="info-value">{{ \Carbon\Carbon::parse($original)->format('d/m/Y') }}
+                                </div>
                             </td>
                             <td class="pad-left">
                                 <div class="info-label">Fecha vigente</div>
-                                <div class="info-value">{{ \Carbon\Carbon::parse($fechaVigente)->format('d/m/Y') }}</div>
+                                <div class="info-value">
+                                    {{ \Carbon\Carbon::parse($fechaVigente)->format('d/m/Y') }}
+                                </div>
                             </td>
                         </tr>
                         @if ($agreement->status == 2 && $agreement->completado_at)
@@ -874,47 +1153,47 @@
 
     @endif
 
-
-    {{-- CAPACITACIÓN --}}
-    @if ($visit->trainingData)
-
+    {{-- ============================================================ --}}
+    {{-- INDICADORES COMERCIALES (solo existe para distribuidor)        --}}
+    {{-- ============================================================ --}}
+    @if ($visit->distributorVisit && $visit->distributorVisit->commercialIndicators && $visit->distributorVisit->commercialIndicators->count())
         <div class="section">
             <div class="section-title">
-                <span class="bar" style="background:#1E9E8B;"></span>Capacitación
+                <span class="bar" style="background:#7A5CDB;"></span>Indicadores comerciales
             </div>
 
-            <table class="grid-table">
-                <tr>
-                    <td class="pad-right">
-                        <div class="info-label">Tipo</div>
-                        <div class="info-value">{{ $visit->trainingData->tipo }}</div>
-                    </td>
-                    <td class="pad-left">
-                        <div class="info-label">Número de personas</div>
-                        <div class="info-value">{{ $visit->trainingData->num_personas }}</div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <div class="info-label">Tema principal</div>
-                        <div class="info-value">{{ $visit->trainingData->tema_principal }}</div>
-                    </td>
-                </tr>
-                <tr>
-                    <td colspan="2">
-                        <div class="info-label">Comentarios</div>
-                        <div class="info-value {{ $visit->trainingData->comentarios ? '' : 'empty' }}">
-                            {{ $visit->trainingData->comentarios ?? 'Sin dato' }}
-                        </div>
-                    </td>
-                </tr>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Modelo</th>
+                        <th>BP 2025</th>
+                        <th>Whole YTD</th>
+                        <th>Avance</th>
+                        <th>Retail YTD</th>
+                        <th>Inventario</th>
+                        <th>Back order</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach ($visit->distributorVisit->commercialIndicators as $indicador)
+                        <tr>
+                            <td>{{ $indicador->modelo }}</td>
+                            <td>{{ $indicador->bp_2025 }}</td>
+                            <td>{{ $indicador->whole_ytd }}</td>
+                            <td>{{ $indicador->porcentaje_avance }}%</td>
+                            <td>{{ $indicador->retail_ytd }}</td>
+                            <td>{{ $indicador->inventario }}</td>
+                            <td>{{ $indicador->back_order }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
             </table>
         </div>
-
     @endif
 
-
-    {{-- EVIDENCIAS --}}
+    {{-- ============================================================ --}}
+    {{-- EVIDENCIAS (siempre al final, independiente del tipo)         --}}
+    {{-- ============================================================ --}}
     @if ($visit->attachments && $visit->attachments->count())
 
         <div class="section">
@@ -928,7 +1207,8 @@
                         @foreach ($grupo as $archivo)
                             <td>
                                 <div class="evidencia-frame">
-                                    <img src="{{ public_path('storage/' . $archivo->path) }}" alt="{{ $archivo->filename }}">
+                                    <img src="{{ public_path('storage/' . $archivo->path) }}"
+                                        alt="{{ $archivo->filename }}">
                                 </div>
                             </td>
                         @endforeach
@@ -941,7 +1221,6 @@
         </div>
 
     @endif
-
 
     {{-- FOOTER --}}
     <div class="footer">
