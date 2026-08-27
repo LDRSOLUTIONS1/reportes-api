@@ -27,6 +27,8 @@ return new class extends Migration
             $table->unsignedInteger('numero_reprogramacion')
                 ->default(0);
 
+            $table->timestamp('recordatorio_enviado_at')->nullable();
+
             $table->tinyInteger('estado')
                 ->default(2)
                 ->comment('0=Eliminado, 1=Inactivo, 2=Activo');

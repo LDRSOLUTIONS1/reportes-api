@@ -6,6 +6,8 @@ use App\Models\VisitReport;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use App\Models\ClientVisit;
+use App\Models\User;
+use App\Services\AgreementReminderService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
@@ -23,7 +25,9 @@ class VisitReportController extends Controller
 
     public function index()
     {
-        $visits = VisitReport::with([
+        $user = auth()->user();
+
+        $query = VisitReport::with([
             'user:id,name,email',
             'clientVisit:id,visit_report_id,razon_social',
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
@@ -40,12 +44,65 @@ class VisitReportController extends Controller
             'status',
             'estado',
             'created_at',
-        )
-            ->activos()
-            ->orderBy('id', 'desc')
-            ->get();
+        );
 
-        return response()->json($visits, 200);
+        // Super Administrador / Administrador
+        if (in_array($user->role_id, [1, 2, 4])) {
+
+            return response()->json(
+                $query
+                    ->activos()
+                    ->orderBy('id', 'desc')
+                    ->get(),
+                200
+            );
+        }
+
+        // El usuario tiene subordinados → es Manager
+        $subordinateIds = User::where('manager_id', $user->id)
+            ->pluck('id');
+
+        if ($subordinateIds->isNotEmpty()) {
+
+            $userIds = $subordinateIds
+                ->push($user->id)
+                ->unique();
+
+            return response()->json(
+                $query
+                    ->whereIn('user_id', $userIds)
+                    ->activos()
+                    ->orderBy('id', 'desc')
+                    ->get(),
+                200
+            );
+        }
+
+        // El usuario pertenece a un Manager
+        if (!is_null($user->manager_id)) {
+
+            return response()->json(
+                $query
+                    ->whereIn('user_id', [
+                        $user->id,
+                        $user->manager_id,
+                    ])
+                    ->activos()
+                    ->orderBy('id', 'desc')
+                    ->get(),
+                200
+            );
+        }
+
+        // Usuario sin subordinados y sin Manager
+        return response()->json(
+            $query
+                ->where('user_id', $user->id)
+                ->activos()
+                ->orderBy('id', 'desc')
+                ->get(),
+            200
+        );
     }
 
     public function show($id)
@@ -238,13 +295,16 @@ class VisitReportController extends Controller
                 'completado_at'    => null,
             ]);
 
-            $newAgreement->dates()->create([
-                'fecha_compromiso'      => $agreement['fecha_compromiso'],
-                'motivo_reprogramacion' => null,
-                'user_id'               => Auth::id(),
-                'numero_reprogramacion' => 0,
-                'estado'                => 2,
+            $date = $newAgreement->dates()->create([
+                'fecha_compromiso'          => $agreement['fecha_compromiso'],
+                'motivo_reprogramacion'     => null,
+                'user_id'                   => Auth::id(),
+                'numero_reprogramacion'     => 0,
+                'recordatorio_enviado_at'   => null,
+                'estado'                    => 2,
             ]);
+
+            AgreementReminderService::schedule($date);
         }
     }
 

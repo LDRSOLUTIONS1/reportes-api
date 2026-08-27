@@ -6,6 +6,7 @@ use App\Models\FollowupAgreement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use App\Services\AgreementReminderService;
 
 class FollowupAgreementController extends Controller
 {
@@ -106,22 +107,34 @@ class FollowupAgreementController extends Controller
             $agreement->dates()->max('numero_reprogramacion') ?? 0
         ) + 1;
 
-        DB::transaction(function () use ($agreement, $validated, $nextNumero) {
-
+        $newDate = DB::transaction(function () use (
+            $agreement,
+            $validated,
+            $nextNumero
+        ) {
             $agreement->dates()
                 ->where('estado', 2)
                 ->update([
-                    'estado' => 1
+                    'estado' => 1,
                 ]);
 
-            $agreement->dates()->create([
+            $newDate = $agreement->dates()->create([
                 'fecha_compromiso'      => $validated['fecha_compromiso'],
                 'motivo_reprogramacion' => $validated['motivo_reprogramacion'],
                 'user_id'               => Auth::id(),
                 'numero_reprogramacion' => $nextNumero,
+                'recordatorio_enviado_at' => null,
                 'estado'                => 2,
             ]);
+
+            $agreement->update([
+                'fecha_compromiso' => $validated['fecha_compromiso'],
+            ]);
+
+            return $newDate;
         });
+
+        AgreementReminderService::schedule($newDate);
 
         $agreement->load([
             'dates' => function ($query) {

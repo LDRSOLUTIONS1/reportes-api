@@ -17,12 +17,14 @@ class FollowupAgreementDate extends Model
         'motivo_reprogramacion',
         'user_id',
         'numero_reprogramacion',
+        'recordatorio_enviado_at',
         'estado',
     ];
 
     protected $casts = [
         'fecha_compromiso' => 'date',
         'numero_reprogramacion' => 'integer',
+        'recordatorio_enviado_at' => 'datetime',
     ];
 
     // Relación con el acuerdo
