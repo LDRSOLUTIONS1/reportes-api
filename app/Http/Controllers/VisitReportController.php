@@ -38,7 +38,7 @@ class VisitReportController extends Controller
             'tipo_visita',
             'objetivo',
             'logros_estrategia',
-            'segmento',
+            'segment_id',
             'fecha_inicio',
             'fecha_fin',
             'status',
@@ -125,6 +125,7 @@ class VisitReportController extends Controller
 
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
+            'segment:id,name',
         ])->select(
             'id',
             'user_id',
@@ -132,7 +133,7 @@ class VisitReportController extends Controller
             'tipo_visita',
             'objetivo',
             'logros_estrategia',
-            'segmento',
+            'segment_id',
             'fecha_inicio',
             'fecha_fin',
         )
@@ -161,6 +162,7 @@ class VisitReportController extends Controller
 
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
+            'segment:id,name',
         ])->select(
             'id',
             'user_id',
@@ -168,7 +170,7 @@ class VisitReportController extends Controller
             'tipo_visita',
             'objetivo',
             'logros_estrategia',
-            'segmento',
+            'segment_id',
             'fecha_inicio',
             'fecha_fin',
         )
@@ -582,7 +584,7 @@ class VisitReportController extends Controller
                 'tipo_visita'       => 'required|in:presentacion_comercial,capacitacion_operativa,capacitacion_producto,acompanamiento_comercial,operativa,capacitacion,otro',
                 'objetivo'          => 'nullable|string|max:255',
                 'logros_estrategia' => 'nullable|string',
-                'segmento'          => 'nullable|string|max:255',
+                'segment_id'        => 'nullable|exists:segments,id',
                 'fecha_inicio'      => 'required|date',
                 'fecha_fin'         => 'nullable|date|after_or_equal:fecha_inicio',
                 'estado'            => 'nullable|in:0,1,2',
@@ -593,7 +595,7 @@ class VisitReportController extends Controller
                 'tipo_visita.required'      => 'Debe seleccionar el tipo de visita.',
                 'tipo_visita.in'            => 'El tipo de visita seleccionado no es válido.',
                 'objetivo.max'              => 'El objetivo no puede tener más de 255 caracteres.',
-                'segmento.max'              => 'El segmento no puede tener más de 255 caracteres.',
+                'segment_id.exists'         => 'El segment_id no existe.',
                 'fecha_inicio.required'     => 'La fecha de inicio es obligatoria.',
                 'fecha_inicio.date'         => 'La fecha de inicio no es válida.',
                 'fecha_fin.date'            => 'La fecha de fin no es válida.',
@@ -835,6 +837,7 @@ class VisitReportController extends Controller
             },
             'trainingData:id,visit_report_id,tipo,tema_principal,num_personas,comentarios',
             'attachments:id,visit_report_id,filename,path,tipo',
+            'segment:id,name',
         ])
             ->select(
                 'id',
@@ -843,7 +846,7 @@ class VisitReportController extends Controller
                 'tipo_visita',
                 'objetivo',
                 'logros_estrategia',
-                'segmento',
+                'segment_id',
                 'fecha_inicio',
                 'fecha_fin',
             )

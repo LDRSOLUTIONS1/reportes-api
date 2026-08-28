@@ -59,6 +59,11 @@ class User extends Authenticatable
         return $this->hasMany(FollowupAgreementDate::class);
     }
 
+    public function segment()
+    {
+        return $this->belongsTo(Segment::class);
+    }
+
     public function scopeActivos($query)
     {
         return $query->whereIn('estado', [1, 2]);

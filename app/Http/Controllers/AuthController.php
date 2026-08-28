@@ -125,7 +125,8 @@ class AuthController extends Controller
 
     public function user(Request $request)
     {
-        $user = $request->user();
+        $user = $request->user()->load('segment');
+
         return response()->json([
             'message' => 'Usuario autenticado',
             'user' => [
@@ -138,6 +139,11 @@ class AuthController extends Controller
                 'brand' => $user->brand,
                 'location_name' => $user->location_name,
                 'estado' => $user->estado,
+
+                'segment' => $user->segment ? [
+                    'id' => $user->segment->id,
+                    'name' => $user->segment->name,
+                ] : null,
             ]
         ], 200);
     }

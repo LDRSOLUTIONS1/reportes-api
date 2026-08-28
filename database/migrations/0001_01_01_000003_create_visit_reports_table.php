@@ -23,7 +23,7 @@ return new class extends Migration
             ]);
             $table->string('objetivo')->nullable();
             $table->text('logros_estrategia')->nullable();
-            $table->string('segmento')->nullable();
+            $table->foreignId('segment_id')->nullable()->constrained('segments');
             $table->date('fecha_inicio');
             $table->date('fecha_fin')->nullable();
             $table->enum('status', ['borrador', 'enviado', 'revisado'])->default('borrador');

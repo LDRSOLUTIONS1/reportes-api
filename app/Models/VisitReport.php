@@ -15,7 +15,7 @@ class VisitReport extends Model
         'tipo_visita',
         'objetivo',
         'logros_estrategia',
-        'segmento',
+        'segment_id',
         'fecha_inicio',
         'fecha_fin',
         'status',
@@ -52,6 +52,11 @@ class VisitReport extends Model
     public function attachments()
     {
         return $this->hasMany(VisitAttachment::class);
+    }
+
+    public function segment()
+    {
+        return $this->belongsTo(Segment::class);
     }
 
     // Scopes

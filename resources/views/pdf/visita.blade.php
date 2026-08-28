@@ -572,8 +572,8 @@
             <tr>
                 <td>
                     <div class="info-label">Segmento</div>
-                    <div class="info-value {{ $visit->segmento ? '' : 'empty' }}">
-                        {{ $visit->segmento ?? 'Sin dato' }}
+                    <div class="info-value {{ $visit->segment?->name ? '' : 'empty' }}">
+                        {{ $visit->segment?->name ?? 'Sin dato' }}
                     </div>
                 </td>
                 <td>&nbsp;</td>
@@ -848,8 +848,7 @@
                         <td>
                             {{-- "Otro" siempre visible, igual que en React (no es condicional) --}}
                             <div class="info-label">Otro</div>
-                            <div
-                                class="info-value {{ $visit->clientVisit->requirements->otro ? '' : 'empty' }}">
+                            <div class="info-value {{ $visit->clientVisit->requirements->otro ? '' : 'empty' }}">
                                 {{ $visit->clientVisit->requirements->otro ?? 'Sin dato' }}</div>
                         </td>
                     </tr>
@@ -1156,7 +1155,10 @@
     {{-- ============================================================ --}}
     {{-- INDICADORES COMERCIALES (solo existe para distribuidor)        --}}
     {{-- ============================================================ --}}
-    @if ($visit->distributorVisit && $visit->distributorVisit->commercialIndicators && $visit->distributorVisit->commercialIndicators->count())
+    @if (
+        $visit->distributorVisit &&
+            $visit->distributorVisit->commercialIndicators &&
+            $visit->distributorVisit->commercialIndicators->count())
         <div class="section">
             <div class="section-title">
                 <span class="bar" style="background:#7A5CDB;"></span>Indicadores comerciales

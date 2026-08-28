@@ -84,23 +84,66 @@ class UsersController extends Controller
     {
         return $request->validate(
             [
-                'collaborator_number' => 'nullable|numeric',
-                'role_id'             => 'required|exists:roles,id',
-                'manager_id'          => 'nullable|exists:users,id',
-                'name'                => 'required|string|max:255' . $id,
-                'email'               => 'nullable|email|unique:users,email,' . $id,
-                'estado'              => 'nullable|in:0,1,2',
+                'collaborator_number' => [
+                    'required',
+                    'numeric',
+                    'unique:users,collaborator_number,' . $id,
+                ],
+
+                'role_id' => [
+                    'required',
+                    'integer',
+                    'exists:roles,id',
+                ],
+
+                'manager_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:users,id',
+                ],
+
+                'name' => [
+                    'required',
+                    'string',
+                    'max:255',
+                ],
+
+                'email' => [
+                    'required',
+                    'email',
+                    'max:255',
+                    'unique:users,email,' . $id,
+                ],
+
+                'estado' => [
+                    'nullable',
+                    'integer',
+                    'in:0,1,2',
+                ],
             ],
             [
-                'collaborator_number.numeric' => 'El número de colaborador debe ser un número',
-                'role_id.required'            => 'El rol es obligatorio',
-                'role_id.exists'              => 'El rol no existe',
-                'manager_id.exists'           => 'El manager id no existe',
-                'name.required'               => 'El nombre es obligatorio',
-                'name.max'                    => 'El nombre no puede tener más de 255 caracteres',
-                'email.email'                 => 'El correo electrónico debe ser válido',
-                'email.unique'                => 'El correo electrónico ya existe',
-                'estado.in'                   => 'El estado debe ser 1 (Inactivo) o 2 (Activo).',
+                'collaborator_number.required' => 'El número de colaborador es obligatorio.',
+                'collaborator_number.numeric'  => 'El número de colaborador debe ser numérico.',
+                'collaborator_number.unique'   => 'El número de colaborador ya existe.',
+
+                'role_id.required' => 'El rol es obligatorio.',
+                'role_id.integer'  => 'El rol debe ser un número.',
+                'role_id.exists'   => 'El rol seleccionado no existe.',
+
+                'manager_id.integer' => 'El manager debe ser un número.',
+                'manager_id.exists'  => 'El manager seleccionado no existe.',
+
+                'name.required' => 'El nombre es obligatorio.',
+                'name.string'   => 'El nombre debe ser texto.',
+                'name.max'      => 'El nombre no puede tener más de 255 caracteres.',
+
+                'email.required' => 'El correo electrónico es obligatorio.',
+                'email.email'    => 'El correo electrónico debe ser válido.',
+                'email.max'      => 'El correo electrónico no puede tener más de 255 caracteres.',
+                'email.unique'   => 'El correo electrónico ya existe.',
+
+                'estado.integer' => 'El estado debe ser un número.',
+                'estado.in'      => 'El estado debe ser 0, 1 o 2.',
             ]
         );
     }

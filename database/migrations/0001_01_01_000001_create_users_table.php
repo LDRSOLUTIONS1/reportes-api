@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('role_id')->nullable()->constrained();
             $table->foreignId('manager_id')->nullable()->constrained('users');
+            $table->foreignId('segment_id')->nullable()->constrained('segments');
             $table->string('collaborator_number')->nullable()->unique();
 
             $table->string('external_rh_id')->nullable();
