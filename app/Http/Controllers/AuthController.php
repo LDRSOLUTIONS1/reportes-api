@@ -85,7 +85,7 @@ class AuthController extends Controller
             $user->update([
                 'external_rh_id' => $decoded->id_colaborador,
                 'collaborator_number' => $decoded->id_colaborador,
-                'role_id' => 1,
+                'role_id' => 3,
                 'name' => $decoded->nombre,
                 'email' => $decoded->correo,
                 'brand' => $decoded->marca,
@@ -95,7 +95,7 @@ class AuthController extends Controller
             $user = User::create([
                 'external_rh_id' => $decoded->id_colaborador,
                 'collaborator_number' => $decoded->id_colaborador,
-                'role_id' => 1,
+                'role_id' => 3,
                 'name' => $decoded->nombre,
                 'email' => $decoded->correo,
                 'brand' => $decoded->marca,

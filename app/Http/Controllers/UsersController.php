@@ -12,12 +12,15 @@ class UsersController extends Controller
     public function index()
     {
         $usuarios = User::with([
-            'role:id,name'
+            'role:id,name',
+            'manager:id,name',
+            'segment:id,name'
         ])->select(
             'id',
             'collaborator_number',
             'role_id',
             'manager_id',
+            'segment_id',
             'name',
             'email',
             'estado',
@@ -47,12 +50,15 @@ class UsersController extends Controller
     public function show($id)
     {
         $usuario = User::with([
-            'role:id,name'
+            'role:id,name',
+            'manager:id,name',
+            'segment:id,name'
         ])->select(
             'id',
             'collaborator_number',
             'role_id',
             'manager_id',
+            'segment_id',
             'name',
             'email',
             'estado',
@@ -102,6 +108,12 @@ class UsersController extends Controller
                     'exists:users,id',
                 ],
 
+                'segment_id' => [
+                    'nullable',
+                    'integer',
+                    'exists:segments,id',
+                ],
+
                 'name' => [
                     'required',
                     'string',
@@ -132,6 +144,9 @@ class UsersController extends Controller
 
                 'manager_id.integer' => 'El manager debe ser un número.',
                 'manager_id.exists'  => 'El manager seleccionado no existe.',
+
+                'segment_id.integer' => 'El segmento debe ser un número.',
+                'segment_id.exists'  => 'El segmento seleccionado no existe.',
 
                 'name.required' => 'El nombre es obligatorio.',
                 'name.string'   => 'El nombre debe ser texto.',
