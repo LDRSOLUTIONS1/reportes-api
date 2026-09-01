@@ -30,14 +30,16 @@
                     {{-- LOGO --}}
                     <tr>
                         <td align="center" style="padding:20px;">
-                            <img src="{{ asset('images/foton.png') }}" alt="LDR Solutions" width="150"
+                            <img src="https://apireports.ldrhumanresources.com/images/foton.png"
+                                alt="LDR Solutions"
+                                width="150"
                                 style="
-                                display:block;
-                                max-width:150px;
-                                width:100%;
-                                height:auto;
-                                border:0;
-                            ">
+                                    display:block;
+                                    max-width:150px;
+                                    width:100%;
+                                    height:auto;
+                                    border:0;
+                                ">
                         </td>
                     </tr>
 
