@@ -540,7 +540,10 @@
                     </div>
                 </td>
                 <td style="width:110px; text-align:right; vertical-align:middle;">
-                    <img src="https://apireports.ldrhumanresources.com/images/foton.png" style="width:90px; height:auto;">
+                    <img
+                        src="{{ public_path('images/foton.png') }}"
+                        style="width:90px; height:auto;"
+                    >
                 </td>
             </tr>
         </table>
