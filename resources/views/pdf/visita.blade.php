@@ -521,8 +521,10 @@
     <div class="header">
         <table class="header-table">
             <tr>
-                <td>
-                    <div class="title">Reporte de visita #{{ $visit->id }}</div>
+                <td style="vertical-align:middle;">
+                    <div class="title">
+                        Informe Visita Comercial - {{ $esClienteDirecto ? 'Cliente Directo' : 'Distribuidor' }}
+                    </div>
                     <div class="subtitle">
                         {{ \Carbon\Carbon::parse($visit->fecha_inicio)->format('d/m/Y') }}
                         @if ($visit->fecha_fin && $visit->fecha_fin != $visit->fecha_inicio)
@@ -531,11 +533,14 @@
                         &nbsp;&middot;&nbsp; {{ $visit->user?->name ?? 'Sin información' }}
                         ({{ $visit->user?->email ?? 'Sin información' }})
                     </div>
+                    <div style="margin-top:8px;">
+                        <span class="type-badge">
+                            {{ $esClienteDirecto ? 'Cliente directo' : 'Distribuidor' }}
+                        </span>
+                    </div>
                 </td>
-                <td class="type-badge-cell">
-                    <span class="type-badge">
-                        {{ $esClienteDirecto ? 'Cliente directo' : 'Distribuidor' }}
-                    </span>
+                <td style="width:110px; text-align:right; vertical-align:middle;">
+                    <img src="https://apireports.ldrhumanresources.com/images/foton.png" style="width:90px; height:auto;">
                 </td>
             </tr>
         </table>
