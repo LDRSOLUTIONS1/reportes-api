@@ -61,7 +61,7 @@ class SendAgreementReminder implements ShouldQueue
 
         Mail::to([
             $user->email,
-            'luisangelem.dp@gmail.com',
+            'pablo.torrejon@ldrsolutions.com.mx',
         ])->send(new AgreementReminder($date));
 
         $date->update([
