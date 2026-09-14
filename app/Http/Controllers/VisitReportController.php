@@ -639,6 +639,12 @@ class VisitReportController extends Controller
                 'contactos.*.puesto'   => 'required|string|max:255',
                 'contactos.*.email'    => 'nullable|email|max:255',
                 'contactos.*.telefono' => 'required|string|max:255',
+            ],
+            [
+                'contactos.*.nombre.required'   => 'El nombre del contacto es obligatorio.',
+                'contactos.*.puesto.required'   => 'El puesto del contacto es obligatorio.',
+                'contactos.*.email.email'       => 'El email del contacto no es válido.',
+                'contactos.*.telefono.required' => 'El teléfono del contacto es obligatorio.',
             ]
         )->validate()['contactos'];
     }
@@ -655,6 +661,15 @@ class VisitReportController extends Controller
                 'fleet_info.*.cantidad'                => 'required|integer|min:1',
                 'fleet_info.*.porcentaje_flota'        => 'nullable|numeric|min:0|max:100',
                 'fleet_info.*.comentarios_aplicacion'  => 'nullable|string|max:255',
+            ],
+            [
+                'fleet_info.*.marca.required'                   => 'La marca del vehículo es obligatoria.',
+                'fleet_info.*.modelo.required'                  => 'El modelo del vehículo es obligatorio.',
+                'fleet_info.*.capacidad_carga.required'         => 'La capacidad de carga del vehículo es obligatoria.',
+                'fleet_info.*.cantidad.required'                => 'La cantidad de vehículos es obligatoria.',
+                'fleet_info.*.porcentaje_flota.numeric'         => 'El porcentaje de la flota debe ser un número.',
+                'fleet_info.*.porcentaje_flota.min'             => 'El porcentaje de la flota no puede ser menor a 0.',
+                'fleet_info.*.porcentaje_flota.max'             => 'El porcentaje de la flota no puede ser mayor a 100.',
             ]
         )->validate()['fleet_info'];
     }
@@ -667,6 +682,14 @@ class VisitReportController extends Controller
                 'sales_history'            => 'array',
                 'sales_history.*.anio'     => 'required|integer|min:2000',
                 'sales_history.*.cantidad' => 'required|integer|min:0',
+            ],
+            [
+                'sales_history.*.anio.required'     => 'El año de la historia de ventas es obligatorio.',
+                'sales_history.*.anio.integer'      => 'El año de la historia de ventas debe ser un número entero.',
+                'sales_history.*.anio.min'          => 'El año de la historia de ventas no puede ser menor a 2000.',
+                'sales_history.*.cantidad.required' => 'La cantidad de la historia de ventas es obligatoria.',
+                'sales_history.*.cantidad.integer'  => 'La cantidad de la historia de ventas debe ser un número entero.',
+                'sales_history.*.cantidad.min'      => 'La cantidad de la historia de ventas no puede ser menor a 0.',
             ]
         )->validate()['sales_history'];
     }
@@ -693,7 +716,7 @@ class VisitReportController extends Controller
                 'tiempo_entrega.required'      => 'El tiempo de entrega es obligatorio.',
                 'lugar_entrega.required'       => 'El lugar de entrega es obligatorio.',
                 'distribuidor.required'        => 'Debe seleccionar un distribuidor.',
-                'demo.required'                => 'Debe seleccionar una opción.',
+                'demo.required'                => 'Debe seleccionar si o no para demo.',
                 'demo.in'                      => 'El valor de demo no es válido.',
             ]
         );
@@ -781,6 +804,9 @@ class VisitReportController extends Controller
             [
                 'participantes'          => 'array',
                 'participantes.*.nombre' => 'required|string|max:255',
+            ],
+            [
+                'participantes.*.nombre.required' => 'El nombre del participante es obligatorio.',
             ]
         )->validate()['participantes'];
     }
@@ -795,7 +821,13 @@ class VisitReportController extends Controller
                 'leads.*.modelo_interes'    => 'nullable|string|max:255',
                 'leads.*.porcentaje_avance' => 'nullable|numeric|min:0|max:100',
                 'leads.*.comentarios'       => 'nullable|string',
-            ]
+            ],
+            [
+                'leads.*.cliente.required'           => 'El cliente del lead es obligatorio.',
+                'leads.*.porcentaje_avance.numeric'  => 'El porcentaje de avance del lead debe ser un número.',
+                'leads.*.porcentaje_avance.min'      => 'El porcentaje de avance del lead no puede ser menor a 0.',
+                'leads.*.porcentaje_avance.max'      => 'El porcentaje de avance del lead no puede ser mayor a 100.',
+            ],
         )->validate()['leads'];
     }
 
@@ -812,7 +844,20 @@ class VisitReportController extends Controller
                 'commercial_indicators.*.retail_ytd'        => 'nullable|numeric|min:0',
                 'commercial_indicators.*.inventario'        => 'nullable|integer|min:0',
                 'commercial_indicators.*.back_order'        => 'nullable|integer|min:0',
-            ]
+            ],
+            [
+                'commercial_indicators.*.modelo.required'            => 'El modelo del indicador comercial es obligatorio.',
+                'commercial_indicators.*.bp_2025.numeric'            => 'El BP 2025 del indicador comercial debe ser un número.',
+                'commercial_indicators.*.whole_ytd.numeric'          => 'El Whole YTD del indicador comercial debe ser un número.',
+                'commercial_indicators.*.porcentaje_avance.numeric'  => 'El porcentaje de avance del indicador comercial debe ser un número.',
+                'commercial_indicators.*.porcentaje_avance.min'      => 'El porcentaje de avance del indicador comercial no puede ser menor a 0.',
+                'commercial_indicators.*.porcentaje_avance.max'      => 'El porcentaje de avance del indicador comercial no puede ser mayor a 100.',
+                'commercial_indicators.*.retail_ytd.numeric'         => 'El Retail YTD del indicador comercial debe ser un número.',
+                'commercial_indicators.*.inventario.integer'         => 'El inventario del indicador comercial debe ser un número entero.',
+                'commercial_indicators.*.inventario.min'             => 'El inventario del indicador comercial no puede ser menor a 0.',
+                'commercial_indicators.*.back_order.integer'         => 'El back order del indicador comercial debe ser un número entero.',
+                'commercial_indicators.*.back_order.min'             => 'El back order del indicador comercial no puede ser menor a 0.',
+            ],
         )->validate()['commercial_indicators'];
     }
 
