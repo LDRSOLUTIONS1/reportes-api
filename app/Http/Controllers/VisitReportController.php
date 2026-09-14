@@ -31,6 +31,7 @@ class VisitReportController extends Controller
             'user:id,name,email',
             'clientVisit:id,visit_report_id,razon_social',
             'distributorVisit:id,visit_report_id,distribuidor,plaza,grupo',
+            'segment:id,name',
         ])->select(
             'id',
             'user_id',
