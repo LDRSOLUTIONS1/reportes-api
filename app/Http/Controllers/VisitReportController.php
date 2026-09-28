@@ -749,18 +749,14 @@ class VisitReportController extends Controller
     {
         return $request->validate(
             [
-                'tipo'           => 'required|string|max:255',
-                'tema_principal' => 'required|string|max:255',
-                'num_personas'   => 'required|integer|min:1',
-                'comentarios'    => 'required|string|max:255',
+                'tipo'           => 'nullable|string|max:255',
+                'tema_principal' => 'nullable|string|max:255',
+                'num_personas'   => 'nullable|integer|min:1',
+                'comentarios'    => 'nullable|string|max:255',
             ],
             [
-                'tipo.required'           => 'El tipo es obligatorio.',
-                'tema_principal.required' => 'El tema principal es obligatorio.',
-                'num_personas.required'  => 'El número de personas es obligatorio.',
-                'num_personas.integer'   => 'El número de personas debe ser un número entero.',
-                'num_personas.min'       => 'Debe ser al menos 1.',
-                'comentarios.required'   => 'Los comentarios son obligatorios.',
+                'num_personas.integer' => 'El número de personas debe ser un número entero.',
+                'num_personas.min'     => 'El número de personas no puede ser menor a 1.',
             ]
         );
     }
